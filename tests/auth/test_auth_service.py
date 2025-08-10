@@ -1,15 +1,15 @@
 import os
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
-from passlib.context import CryptContext
 from dotenv import load_dotenv
+from passlib.context import CryptContext
+
+from app.auth.service import (create_access_token, hash_password,
+                              verify_password)
 
 load_dotenv()
-
-from app.auth.service import hash_password, verify_password, create_access_token, get_current_user
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 """" happy path testing """
@@ -59,7 +59,6 @@ def test_create_access_token(token_secret_key, token_expire_minutes):
     assert result.get("sub") == "test"
     # The token's expiration is within the expected
     assert result.get("exp") <= int(test_expire.timestamp())
-
 
 # def test_get_current_user():
 #     pass

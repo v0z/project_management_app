@@ -1,18 +1,20 @@
 import os
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
-import jwt
-from jwt import PyJWTError
 from datetime import datetime, timedelta, timezone
+
+import jwt
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jwt import PyJWTError
+from passlib.context import CryptContext
+
 from app.core.logger import logger
+# "database"
+from app.database.base import users_db
 
 load_dotenv()
 
-# "database"
-from app.database.base import users_db
+
 
 # get env values
 TOKEN_SECRET_KEY = os.getenv("TOKEN_SECRET_KEY", "should_use_a_random_string")

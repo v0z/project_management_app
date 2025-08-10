@@ -1,13 +1,12 @@
+import os
 from typing import Dict
 
-from fastapi import FastAPI
 import uvicorn
-import os
 from dotenv import load_dotenv
-
-from app.core.logger import logger
+from fastapi import FastAPI
 
 from app.auth.controller import router as auth_router
+from app.core.logger import logger
 
 load_dotenv()
 
