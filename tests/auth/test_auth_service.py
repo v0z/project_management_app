@@ -10,6 +10,7 @@ load_dotenv()
 
 from app.auth.service import hash_password, verify_password, create_access_token, get_current_user
 
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 """" happy path testing """
 
@@ -52,7 +53,7 @@ def test_create_access_token(token_secret_key, token_expire_minutes):
     token_expiration = token_expire_minutes
     test_data = {"sub": "test"}
     test_expire = datetime.now(timezone.utc) + timedelta(minutes=token_expiration)
-    result_token = create_access_token(test_data)
+    result_token = create_access_token(test_data, secret_key=token_secret_key)
     result = jwt.decode(jwt=result_token, key=token_key, algorithms=["HS256"])
     # The token contains the correct subject
     assert result.get("sub") == "test"

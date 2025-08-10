@@ -31,11 +31,11 @@ def verify_password(password: str, hashed: str):
     return pwd_context.verify(password, hashed)
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, secret_key: str = TOKEN_SECRET_KEY):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, TOKEN_SECRET_KEY, algorithm=TOKEN_ALGORITHM)
+    return jwt.encode(to_encode, secret_key, algorithm=TOKEN_ALGORITHM)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
