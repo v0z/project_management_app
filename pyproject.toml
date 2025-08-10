@@ -27,3 +27,6 @@ ruff = "^0.12.8"
 mypy = "^1.17.1"
 httpx = "^0.28.1"
 
+[tool.poetry]
+name = "fastapi-poetry-crud"
+packages = [{ include = "app" }]
