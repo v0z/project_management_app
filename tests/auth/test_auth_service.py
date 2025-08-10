@@ -17,7 +17,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 @pytest.fixture(scope='module')
 def token_secret_key():
     """Provide the TOKEN_SECRET_KEY constant for tests."""
-    return os.getenv("TOKEN_SECRET_KEY")
+    return os.getenv("TOKEN_SECRET_KEY", 'some_secret')
 
 
 @pytest.fixture
