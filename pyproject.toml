@@ -31,6 +31,3 @@ httpx = "^0.28.1"
 name = "fastapi-poetry-crud"
 packages = [{ include = "app" }]
 
-[tool.pytest.ini_options]
-addopts = "--cov=app --cov-report=xml"
-testpaths = ["tests"]
