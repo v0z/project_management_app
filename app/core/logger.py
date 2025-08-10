@@ -11,7 +11,7 @@ LOG_FILENAME = os.getenv("LOGGER_FILENAME", "app.log")
 # loggeer constants
 LOG_FORMAT = "%(asctime)s [%(levelname)s] - %(pathname)s | %(funcName)s - %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOGGER_NAME = 'app_logger'
+LOGGER_NAME = "app_logger"
 
 # Create logs directory if it doesn't exist
 log_dir = Path(LOG_DIRECTORY)
