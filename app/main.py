@@ -9,9 +9,9 @@ from app.core.logger import logger
 
 load_dotenv()
 
-# set the log level from environment variable or default to "info"
+# get uvicorn settings from environment variables
 UVICORN_PORT = os.getenv("UVICORN_PORT", "8000")
-LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
+UVICORN_LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
 
 app = FastAPI(title="FastAPI Project Management Mess", version="1.0.0")
 
@@ -24,4 +24,4 @@ async def root() -> Dict[str, str]:
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=int(UVICORN_PORT), log_level=LOG_LEVEL, reload=True)
+    uvicorn.run("main:app", port=int(UVICORN_PORT), log_level=UVICORN_LOG_LEVEL, reload=True)

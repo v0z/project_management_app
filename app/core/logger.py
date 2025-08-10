@@ -5,20 +5,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-LOGDIR = os.getenv("LOGDIR", "logs")
-LOGFILE_NAME = os.getenv("LOGFILE_NAME", "app.log")
+LOG_DIRECTORY = os.getenv("LOGGER_LOG_DIR", "logs")
+LOG_FILENAME = os.getenv("LOGGER_FILENAME", "app.log")
+
+# loggeer constants
+LOG_FORMAT = "%(asctime)s [%(levelname)s] - %(pathname)s | %(funcName)s - %(message)s"
+LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOGGER_NAME = 'app_logger'
 
 # Create logs directory if it doesn't exist
-log_dir = Path(LOGDIR)
+log_dir = Path(LOG_DIRECTORY)
 log_dir.mkdir(exist_ok=True)
-log_file_path = log_dir / LOGFILE_NAME
+log_file_path = log_dir / LOG_FILENAME
 
-logger = logging.getLogger('app_logger')
+logger = logging.getLogger(LOGGER_NAME)
 # set the default log level
 logger.setLevel(logging.INFO)
 
 # create formatter and add it to the handler
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 # create handlers
 stream_handler = logging.StreamHandler(sys.stdout)
