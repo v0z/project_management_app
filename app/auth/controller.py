@@ -9,7 +9,6 @@ from app.database.base import users_db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-TOKEN_TYPE = "bearer"
 
 @router.post("/register", response_model=TokenData, status_code=status.HTTP_201_CREATED)
 def register(user: RegisterUserRequest):
@@ -35,7 +34,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token({"sub": form_data.username})
-    return Token(access_token=token, token_type=TOKEN_TYPE)
+    return Token(access_token=token, token_type="bearer") # nosec B106
 
 
 @router.get("/protected")
