@@ -72,7 +72,7 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v4  # Cache Poetry environment to speed up workflow runs
         with:
           path: |
             ~/.cache/pypoetry
@@ -82,7 +82,7 @@ jobs:
             poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install --with dev --no-interaction --sync
+        run: poetry install --no-interaction --sync
 
       - name: Run tests
         run: poetry run pytest tests/
