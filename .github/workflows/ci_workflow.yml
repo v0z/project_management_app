@@ -91,22 +91,10 @@ jobs:
             poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install --only dev --no-interaction --sync
+        run: poetry install --with dev --no-interaction --sync
 
-      - name: Run tests with coverage
-        run: |
-          poetry run coverage run -m pytest tests/  # Run unit tests with coverage tracking
-          poetry run coverage report -m  # Show coverage report in logs
-          if [[ "${{ matrix.python-version }}" == "3.10" ]]; then
-            poetry run coverage xml  # Generate XML report (for coverage badges or uploading)
-          fi
-
-#      - name: Upload coverage report
-#        if: matrix.python-version == '3.12'
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: coverage-report
-#          path: coverage.xml
+      - name: Run tests
+        run: poetry run pytest tests/
 
   dependency-check:
     runs-on: ubuntu-latest
