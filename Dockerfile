@@ -25,13 +25,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 
 # Copy Poetry configuration files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock pytest.ini ./
 
 # Install all dependencies (including dev for testing)
-RUN poetry install --with dev --no-root && rm -rf $POETRY_CACHE_DIR;
+RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR;
 
 # Copy the application code
 COPY ./app /code/app
+COPY ./tests /code/tests
 
 # Expose the port FastAPI will run on
 EXPOSE 8000
