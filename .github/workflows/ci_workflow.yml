@@ -22,7 +22,7 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Install dependencies
-        run: poetry install --with dev --no-interaction --sync
+        run: poetry install --no-root --with dev --no-interaction sync
 
       - name: Run isort
         run: poetry run isort . --profile black
