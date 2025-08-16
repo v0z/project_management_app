@@ -43,7 +43,7 @@ jobs:
             poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install --only dev --no-interaction  # Install dependencies without root package
+        run: poetry install --only dev --no-interaction --sync  # Install dependencies without root package
 
       - name: Fix import sorting with isort
         run: poetry run isort . --profile black
@@ -91,7 +91,7 @@ jobs:
             poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install --no-interaction --sync
+        run: poetry install --only dev --no-interaction --sync
 
       - name: Run tests with coverage
         run: |
@@ -123,7 +123,7 @@ jobs:
         uses: snok/install-poetry@v1
 
       - name: Install dependencies
-        run: poetry install --no-interaction --sync
+        run: poetry install --only dev --no-interaction --sync
 
       - name: Check outdated dependencies
         run: poetry show --outdated  # List outdated dependencies weekly
