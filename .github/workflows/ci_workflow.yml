@@ -1,10 +1,18 @@
-name: Code Quality Check
+name: FastAPI CI with Poetry and Linting
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main"]  # Trigger workflow on push to main branch
   pull_request:
-    branches: ["main"]
+    branches: ["main"]  # Trigger workflow on PRs targeting main branch
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly scheduled run every Monday at midnight
+
+permissions:
+  contents: read
+
+env:
+  POETRY_VIRTUALENVS_IN_PROJECT: true  # Store virtualenv inside project dir (.venv)
 
 jobs:
   code-quality:
@@ -21,72 +29,26 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
 
+      - name: Cache dependencies
+        uses: actions/cache@v4  # Cache Poetry environment to speed up workflow runs
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
+          restore-keys: |
+            poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
+
       - name: Install dependencies
-        run: poetry install --no-root --with dev --no-interaction sync
+        run: poetry install --no-root --with dev --no-interaction --sync
 
-      - name: Run isort
-        run: poetry run isort . --profile black
 
-#name: FastAPI CI with Poetry and Linting
-#
-#on:
-#  push:
-#    branches: ["main"]  # Trigger workflow on push to main branch
-#  pull_request:
-#    branches: ["main"]  # Trigger workflow on PRs targeting main branch
-#  schedule:
-#    - cron: '0 0 * * 1'  # Weekly scheduled run every Monday at midnight
-#
-#permissions:
-#  contents: read  # Minimal required permissions
-#
-#env:
-#  POETRY_VIRTUALENVS_IN_PROJECT: true  # Store virtualenv inside project dir (.venv)
-#
-#jobs:
-#  code-quality:
-#    runs-on: ubuntu-latest  # Use latest Ubuntu runner
-#    strategy:
-#      matrix:
-#        python-version: ["3.12"]  # Code quality runs on a single Python version
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4  # Pull code from GitHub
-#
-#      - name: Set up Python
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: ${{ matrix.python-version }}  # Install specified Python version
-#
-#      - name: Install Poetry
-#        uses: snok/install-poetry@v1  # Install Poetry package manager
-#
-#      - name: Cache dependencies
-#        uses: actions/cache@v4  # Cache Poetry environment to speed up workflow runs
-#        with:
-#          path: |
-#            ~/.cache/pypoetry
-#            .venv
-#          key: poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
-#          restore-keys: |
-#            poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
-#
-#      - name: Install dependencies
-#        run: poetry install --with dev --no-interaction --sync # Install dependencies without root package
-#
-#      - name: Fix import sorting with isort
-#        run: poetry run isort . --profile black
+      - name: Lint and fix issues with Ruff
+        run: |
+          poetry run ruff check app/ tests/ --fix --output-format=github
 
-#      - name: Lint and fix issues with Ruff
-#        run: |
-#          poetry run ruff check app/ tests/ --fix --output-format=github
-#          poetry run ruff format app/ tests/
-#
-#      - name: Check code formatting with Black
-#        run: poetry run black . --check
-
-      # - name: Static typing with mypy
-      #   run: poetry run mypy app/ tests/
+#       - name: Static typing with mypy
+#         run: poetry run mypy app/ tests/
 
 #      - name: Run security scan with Bandit
 #        run: poetry run bandit -r app
