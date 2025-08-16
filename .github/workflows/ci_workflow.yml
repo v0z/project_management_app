@@ -82,7 +82,7 @@ jobs:
             poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install --no-root --with dev --no-interaction --sync
+        run: poetry install --with dev --no-interaction --sync
 
       - name: Run tests
         run: poetry run pytest tests/
