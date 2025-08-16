@@ -2,9 +2,9 @@ name: FastAPI CI with Poetry and Linting
 
 on:
   push:
-    branches: ["main"]  # Trigger workflow on push to main branch
+    branches: ["main"]  # Trigger on push to main
   pull_request:
-    branches: ["main"]  # Trigger workflow on PRs targeting main branch
+    branches: ["main"]  # Trigger on PRs targeting main
   schedule:
     - cron: '0 0 * * 1'  # Weekly scheduled run every Monday at midnight
 
@@ -42,7 +42,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root --with dev --no-interaction --sync
 
-
       - name: Lint and fix issues with Ruff
         run: |
           poetry run ruff check app/ tests/ --fix --output-format=github
@@ -78,16 +77,6 @@ jobs:
           key: poetry-cache-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
           restore-keys: |
             poetry-cache-${{ runner.os }}-
-
-#      - name: Cache dependencies
-#        uses: actions/cache@v4
-#        with:
-#          path: |
-#            ~/.cache/pypoetry
-#            .venv
-#          key: poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}-v2 # Change the key to force a cache miss
-#          restore-keys: |
-#            poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: poetry install --no-interaction --with dev
