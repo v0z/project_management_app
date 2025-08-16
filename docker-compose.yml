@@ -1,0 +1,68 @@
+services:
+  postgres_db:
+    image: postgres:16
+    container_name: fpc_postgres
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data ## Uncomment if you want to persist data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: fpc_pgadmin
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL:  ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD:  ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres_db # this is the service name of the postgres_db
+#    volumes:
+#      - pga_data:/var/lib/pgadmin
+    networks:
+      - app-network
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fpc_fastapi
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres_db # this is the service name of the postgres_db
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres_db # this is the service name of the postgres_db
+    volumes:
+      - ./app:/code/app
+    networks:
+      - app-network
+
+
+#volumes:
+#  postgres_data:
+#  pga_data: # set a custom name of it might cache the data from other projects
+
+networks:
+  app-network:
+    driver: bridge
