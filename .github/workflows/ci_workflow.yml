@@ -15,41 +15,41 @@ env:
   POETRY_VIRTUALENVS_IN_PROJECT: true  # Store virtualenv inside project dir (.venv)
 
 jobs:
-#  code-quality:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - name: Set up Python
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: "3.12"
-#
-#      - name: Install Poetry
-#        uses: snok/install-poetry@v1
-#
-#      - name: Cache dependencies
-#        uses: actions/cache@v4  # Cache Poetry environment to speed up workflow runs
-#        with:
-#          path: |
-#            ~/.cache/pypoetry
-#            .venv
-#          key: poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
-#          restore-keys: |
-#            poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
-#
-#      - name: Install dependencies
-#        run: poetry install --no-root --with dev --no-interaction --sync
-#
-#
-#      - name: Lint and fix issues with Ruff
-#        run: |
-#          poetry run ruff check app/ tests/ --fix --output-format=github
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Cache dependencies
+        uses: actions/cache@v4  # Cache Poetry environment to speed up workflow runs
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
+          restore-keys: |
+            poetry-venv-${{ runner.os }}-${{ matrix.python-version }}-
+
+      - name: Install dependencies
+        run: poetry install --no-root --with dev --no-interaction --sync
+
+
+      - name: Lint and fix issues with Ruff
+        run: |
+          poetry run ruff check app/ tests/ --fix --output-format=github
 
 #       - name: Static typing with mypy
 #         run: poetry run mypy app/ tests/
-
+#
 #      - name: Run security scan with Bandit
 #        run: poetry run bandit -r app
 
@@ -71,6 +71,14 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
 
+      - name: Cache Poetry packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-cache-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
+          restore-keys: |
+            poetry-cache-${{ runner.os }}-
+
 #      - name: Cache dependencies
 #        uses: actions/cache@v4
 #        with:
@@ -87,22 +95,22 @@ jobs:
       - name: Run tests
         run: poetry run pytest tests/
 
-#  dependency-check:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout repository
-#        uses: actions/checkout@v4
-#
-#      - name: Set up Python
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: "3.12"
-#
-#      - name: Install Poetry
-#        uses: snok/install-poetry@v1
-#
-#      - name: Install dependencies
-#        run: poetry install --only dev --no-interaction --sync
-#
-#      - name: Check outdated dependencies
-#        run: poetry show --outdated  # List outdated dependencies weekly
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        run: poetry install --only dev --no-interaction --sync
+
+      - name: Check outdated dependencies
+        run: poetry show --outdated  # List outdated dependencies weekly
