@@ -42,9 +42,15 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root --with dev --no-interaction --sync
 
+      - name: Fix import sorting with isort
+        run: poetry run isort . --profile black
+
       - name: Lint and fix issues with Ruff
         run: |
           poetry run ruff check app/ tests/ --fix --output-format=github
+
+      - name: Check code formatting with Black
+        run: poetry run black .
 
 #       - name: Static typing with mypy
 #         run: poetry run mypy app/ tests/
