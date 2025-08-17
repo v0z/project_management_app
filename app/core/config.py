@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     db_name: str = ""
 
     # pgadmin configuration
-    pgadmin_default_email: EmailStr = ""
+    pgadmin_default_email: EmailStr = "fast@api.com"
     pgadmin_default_password: str = ""
 
     model_config = SettingsConfigDict(
