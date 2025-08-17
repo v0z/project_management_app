@@ -32,11 +32,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), user_repository: UserR
     )
     try:
         payload = decode_access_token(token)
-        user_id: str | None = payload.get("sub")
+        user_id: str = payload.get("sub", "")
         if not user_id:
             raise credentials_exception
 
         user = user_repository.get_by_id(user_id=user_id)
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         # to not send password hash to api
         return UserOut(
             id=user.id,
