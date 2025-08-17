@@ -2,15 +2,11 @@ from contextlib import asynccontextmanager
 from typing import Dict
 
 import uvicorn
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
-from app.application.services.auth_service import AuthService
-from app.auth.controller import router as auth_router1
-from app.infrastructure.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.presentation.api.v1.auth_routes import router as auth_router
 from app.core.logger import logger
-from app.core.database import Base, engine, get_db
+from app.core.database import Base, engine
 
 
 @asynccontextmanager
@@ -20,17 +16,12 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("Database and tables created successfully.")
     yield
-    # Cleanup can be added here if needed
 
 
 app = FastAPI(
     title="FastAPI Project Management Mess", version="1.0.0", lifespan=lifespan
 )
 
-
-
-
-# app.include_router(auth_router1)
 app.include_router(auth_router)
 
 

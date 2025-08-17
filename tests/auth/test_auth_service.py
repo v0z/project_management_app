@@ -6,7 +6,7 @@ import pytest
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 
-from app.auth.service import create_access_token, hash_password, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 
 load_dotenv()
 
@@ -51,15 +51,11 @@ def test_verify_password():
 def test_create_access_token(token_secret_key, token_expire_minutes):
     token_key = token_secret_key
     token_expiration = token_expire_minutes
-    test_data = {"sub": "test"}
+    user_id = "test"
     test_expire = datetime.now(timezone.utc) + timedelta(minutes=token_expiration)
-    result_token = create_access_token(test_data, secret_key=token_secret_key)
+    result_token = create_access_token(user_id=user_id, secret_key=token_secret_key)
     result = jwt.decode(jwt=result_token, key=token_key, algorithms=["HS256"])
     # The token contains the correct subject
     assert result.get("sub") == "test"
     # The token's expiration is within the expected
     assert result.get("exp") <= int(test_expire.timestamp())
-
-
-# def test_get_current_user():
-#     pass

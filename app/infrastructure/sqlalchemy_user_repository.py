@@ -21,6 +21,12 @@ class SQLAlchemyUserRepository(UserRepository):
             password_hash=orm.password_hash,
         )
 
+    def get_by_id(self, user_id: str) -> Optional[DomainUser]:
+        orm = self.db.query(UserORM).filter(UserORM.id == user_id).first()
+        if not orm:
+            return None
+        return self._to_domain_entity(orm)
+
     def get_by_username(self, username: str) -> Optional[DomainUser]:
         orm = self.db.query(UserORM).filter(UserORM.username == username).first()
         if not orm:
