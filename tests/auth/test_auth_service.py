@@ -6,8 +6,7 @@ import pytest
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 
-from app.auth.service import (create_access_token, hash_password,
-                              verify_password)
+from app.auth.service import create_access_token, hash_password, verify_password
 
 load_dotenv()
 
@@ -15,14 +14,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 """" happy path testing """
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def token_secret_key():
     """Provide the TOKEN_SECRET_KEY constant for tests."""
-    return os.getenv("TOKEN_SECRET_KEY", 'some_secret')
+    return os.getenv("TOKEN_SECRET_KEY", "some_secret")
 
 
 @pytest.fixture
-def token_expire_minutes(scope='module'):
+def token_expire_minutes(scope="module"):
     """Provide the TOKEN_EXPIRE_MINUTES constant for tests."""
     return float(os.getenv("TOKEN_EXPIRE_MINUTES", 30))
 
@@ -31,10 +30,11 @@ def token_expire_minutes(scope='module'):
 # act
 # assert
 
+
 def test_hash_password():
-    """ bcrypt hashes will always be different even for the same password,
+    """bcrypt hashes will always be different even for the same password,
     because bcrypt automatically generates a new random salt every time you hash.
-    We can verify the password against the hash using pwd_context.verify() """
+    We can verify the password against the hash using pwd_context.verify()"""
     plain_password = "password"
     hashed_password = hash_password(plain_password)
     result = pwd_context.verify(plain_password, hashed_password)
@@ -59,6 +59,7 @@ def test_create_access_token(token_secret_key, token_expire_minutes):
     assert result.get("sub") == "test"
     # The token's expiration is within the expected
     assert result.get("exp") <= int(test_expire.timestamp())
+
 
 # def test_get_current_user():
 #     pass

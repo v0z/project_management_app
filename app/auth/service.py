@@ -9,11 +9,11 @@ from jwt import PyJWTError
 from passlib.context import CryptContext
 
 from app.core.logger import logger
+
 # "database"
 from app.database.base import users_db
 
 load_dotenv()
-
 
 
 # get env values

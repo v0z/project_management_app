@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth.model import RegisterUserRequest, Token, TokenData
-from app.auth.service import (create_access_token, get_current_user,
-                              hash_password, verify_password)
+from app.auth.service import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from app.core.logger import logger
 from app.database.base import users_db
 
@@ -34,7 +38,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token({"sub": form_data.username})
-    return Token(access_token=token, token_type="bearer") # nosec B106
+    return Token(access_token=token, token_type="bearer")  # nosec B106
 
 
 @router.get("/protected")

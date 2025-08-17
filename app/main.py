@@ -1,20 +1,36 @@
-import os
+from contextlib import asynccontextmanager
 from typing import Dict
 
 import uvicorn
-from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
 
-from app.auth.controller import router as auth_router
+from app.application.services.auth_service import AuthService
+from app.auth.controller import router as auth_router1
+from app.infrastructure.sqlalchemy_user_repository import SQLAlchemyUserRepository
+from app.presentation.api.v1.auth_routes import router as auth_router
 from app.core.logger import logger
+from app.core.database import Base, engine, get_db
 
-load_dotenv()
 
-# get uvicorn settings from environment variables
-UVICORN_PORT = os.getenv("UVICORN_PORT", "8000")
-UVICORN_LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event to create database and tables."""
+    logger.info("Creating database and tables...")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database and tables created successfully.")
+    yield
+    # Cleanup can be added here if needed
 
-app = FastAPI(title="FastAPI Project Management Mess", version="1.0.0")
+
+app = FastAPI(
+    title="FastAPI Project Management Mess", version="1.0.0", lifespan=lifespan
+)
+
+
+
+
+# app.include_router(auth_router1)
 app.include_router(auth_router)
 
 
@@ -26,6 +42,4 @@ async def root() -> Dict[str, str]:
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app", port=int(UVICORN_PORT), log_level=UVICORN_LOG_LEVEL, reload=True
-    )
+    uvicorn.run("main:app", port=8000, log_level="info", reload=True)

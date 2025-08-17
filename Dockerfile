@@ -7,11 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Poetry environment variables
 ENV POETRY_VERSION=2.1.3 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1
-#    POETRY_NO_INTERACTION=1 \
-#    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-#    POETRY_VIRTUALENVS_CREATE=1 \
-#    POETRY_CACHE_DIR=/tmp/poetry_cache
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
 WORKDIR /code
 
@@ -26,13 +24,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 
 # Copy all project files BEFORE installing dependencies
-COPY pyproject.toml poetry.lock ./
-COPY app ./app
-COPY tests ./tests
-COPY pytest.ini ./
+COPY pyproject.toml poetry.lock pytest.ini ./
+COPY ./app ./app
+COPY ./tests ./tests
 
 # Install dependencies (including dev) as CI does
-RUN poetry install --only dev --no-interaction --sync
+RUN poetry install --with dev --no-root && rm -rf $POETRY_CACHE_DIR;
 
 # Expose FastAPI port
 EXPOSE 8000
