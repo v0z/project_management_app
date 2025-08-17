@@ -21,6 +21,6 @@ class Settings(BaseSettings):
 
     # pgadmin configuration
     pgadmin_default_email: EmailStr
-    pgadmin_default_password: str
+    pgadmin_default_password: str = "toor"
 
     model_config = SettingsConfigDict(env_file=".env")

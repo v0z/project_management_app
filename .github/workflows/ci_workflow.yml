@@ -13,6 +13,8 @@ permissions:
 
 env:
   POETRY_VIRTUALENVS_IN_PROJECT: true  # Store virtualenv inside project dir (.venv)
+  TOKEN_SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
+  PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
 
 jobs:
   code-quality:
