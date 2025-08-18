@@ -1,10 +1,9 @@
+import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
-import uuid
-
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -41,6 +40,9 @@ class UserORM(Base):
         default=datetime.utcnow,
         nullable=False,
     )
+
+    projects: Mapped[list["ProjectORM"]] = relationship("ProjectORM", back_populates="owner",
+                                                       cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<UserORM(id={self.id}, username={self.username}, email={self.email})>"
