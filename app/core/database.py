@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from app.core.config import Settings
 
 settings = Settings()
@@ -22,7 +23,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create a declarative base class for model definitions
 Base = declarative_base()
-
 
 
 def get_db():

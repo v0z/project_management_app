@@ -5,6 +5,7 @@ from uuid import UUID
 @dataclass
 class User:
     """User entity."""
+
     id: UUID
     username: str
     email: str

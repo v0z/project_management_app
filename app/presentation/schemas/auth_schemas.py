@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     username: str
     email: EmailStr
     password: str
@@ -23,18 +24,21 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for logging in a user."""
+
     username: str
     password: str
 
 
 class UserResponse(BaseModel):
     """Response model for user details."""
+
     id: UUID
     username: str
 
 
 class TokenResponse(BaseModel):
     """Response model for JWT token."""
+
     access_token: str
     token_type: str = "bearer"
 
@@ -44,6 +48,4 @@ class UserOut(BaseModel):
     email: str
     username: str
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
