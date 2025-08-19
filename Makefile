@@ -22,3 +22,6 @@ isort:
 
 recreate_db:
 	python -m scripts.recreate_db
+
+tree:
+	tree --gitignore -A -I __init__.py
