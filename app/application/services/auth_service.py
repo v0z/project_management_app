@@ -2,10 +2,7 @@ from uuid import uuid4
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.domain.enities.user import User
-from app.domain.exceptions.user_exceptions import (
-	UserAlreadyExistsError,
-	UserWithEmailAlreadyExistsError,
-)
+from app.domain.exceptions.user_exceptions import UserAlreadyExistsError, UserWithEmailAlreadyExistsError
 from app.domain.repositories.user_repository import UserRepository
 
 

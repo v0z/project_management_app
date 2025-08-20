@@ -10,7 +10,7 @@ class ProjectResponse(BaseModel):
 
 	id: UUID
 	name: str
-	description: str = None
+	description: str = ""
 	created_at: datetime
 
 	@field_serializer("created_at")
@@ -22,7 +22,7 @@ class ProjectCreateRequest(BaseModel):
 	"""Request model for project creation."""
 
 	name: str
-	description: Optional[str] = None
+	description: str = ""
 
 	"""Strip whitespace from strings"""
 	model_config = ConfigDict(str_strip_whitespace=True)

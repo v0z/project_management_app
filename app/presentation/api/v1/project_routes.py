@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.application.services.project_service import ProjectService
 from app.core.exceptions import DatabaseError
+from app.core.logger import logger
 from app.domain.exceptions.project_exceptions import (
 	ProjectNotFoundError,
 	ProjectPermissionError,
@@ -17,7 +18,6 @@ from app.presentation.schemas.project_schemas import (
 	ProjectResponse,
 	ProjectUpdateRequest,
 )
-from app.core.logger import logger
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -50,12 +50,13 @@ async def create(
 	"""Create a project and add it to the user"""
 	try:
 		# return the created project
-		return service.add_project(name=form.name, description=form.description, user_id=current_user.id)
-	except DatabaseError as e:
+		return service.add_project(user_id=current_user.id, name=form.name, description=form.description)
+	except DatabaseError:
 		raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 	except Exception as e:
 		logger.error(e)
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e)
+
 
 @router.get(
 	"/{project_id}",

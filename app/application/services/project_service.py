@@ -16,7 +16,7 @@ class ProjectService:
 	def __init__(self, repo: ProjectRepository):
 		self.repo = repo
 
-	def add_project(self, name: str, description: str, user_id: UUID) -> Project:
+	def add_project(self, user_id: UUID, name: str, description: str = "") -> Project:
 		# name uniqueness is not enforced, so I don't check it
 
 		project = Project(
@@ -58,12 +58,11 @@ class ProjectService:
 		if not project.is_owned_by(user_id=user_id):
 			raise ProjectPermissionError()
 
-		try:
-			# update and persist the changes
-			updated_project = self.repo.update(project_id=project_id, data=data)
-			return updated_project
-		except Exception as e:
-			raise ProjectUpdateFailed() from e
+		# update and persist the changes
+		project_updated = self.repo.update(project_id=project_id, data=data)
+		if project_updated is None:
+			raise ProjectUpdateFailed()
+		return project_updated
 
 	def delete_project(self, project_id: UUID, user_id: UUID) -> bool:
 		project = self.repo.get_by_id(project_id=project_id)

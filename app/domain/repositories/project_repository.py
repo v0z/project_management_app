@@ -21,7 +21,7 @@ class ProjectRepository(ABC):
 		pass
 
 	@abstractmethod
-	def update(self, project_id: UUID, data: Project) -> Optional[Project]:
+	def update(self, project_id: UUID, data) -> Optional[Project]:
 		pass
 
 	@abstractmethod

@@ -1,16 +1,15 @@
-import uuid
 from typing import List, Optional, cast
+from uuid import UUID
 
-from sqlalchemy import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
 from app.domain.enities.project import Project as DomainProject
 from app.domain.repositories.project_repository import ProjectRepository
 from app.infrastructure.orm.project_model import ProjectORM
 from app.presentation.schemas.project_schemas import ProjectUpdateRequest
-from app.core.exceptions import DatabaseError
 
 
 class SQLAlchemyProjectRepository(ProjectRepository):
@@ -21,14 +20,14 @@ class SQLAlchemyProjectRepository(ProjectRepository):
 	def _to_domain_entity(orm: ProjectORM) -> DomainProject:
 		"""Map ORM model to domain model"""
 		return DomainProject(
-			id=cast(uuid.UUID, orm.id),
+			id=cast(UUID, orm.id),
 			name=orm.name,
 			description=orm.description,
-			owner=cast(uuid.UUID, orm.owner_id),
+			owner=cast(UUID, orm.owner_id),
 			created_at=orm.created_at,
 		)
 
-	def list_by_user(self, user_id: UUID) -> List[DomainProject]:
+	def list_by_user(self, user_id: UUID) -> List[Project]:
 		"""List all projects for a given user ID"""
 		try:
 			orm_projects = self.db.query(ProjectORM).filter(ProjectORM.owner_id == user_id).all()
