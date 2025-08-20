@@ -12,13 +12,17 @@ coverage:
 	pytest --cov=app --cov-report=term-missing
 
 lint:
-	ruff check app
+	ruff check --fix app
 
 format:
 	ruff format app
 
 isort:
 	isort app
+
+typing:
+	mypy app
+
 
 recreate_db:
 	python -m scripts.recreate_db

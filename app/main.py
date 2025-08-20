@@ -15,10 +15,10 @@ app.include_router(project_router)
 
 @app.get("/", summary="Health Check", tags=["Health"], response_model=dict)
 async def root() -> Dict[str, str]:
-    """Rootmake endpoint to check if the server is running."""
-    logger.info("Health check endpoint hit")
-    return {"status": "healthy", "message": "server is up"}
+	"""Rootmake endpoint to check if the server is running."""
+	logger.info("Health check endpoint hit")
+	return {"status": "healthy", "message": "server is up"}
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=8000, log_level="info", reload=True)
+	uvicorn.run("main:app", port=8000, log_level="info", reload=True)
