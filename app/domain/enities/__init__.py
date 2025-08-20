@@ -1,4 +1,4 @@
-from .user import User
 from .project import Project
+from .user import User
 
-__all__ = [User, Project]
+__all__ = ["User", "Project"]

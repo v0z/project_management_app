@@ -1,21 +1,21 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
 from uuid import UUID
-
-from app.domain.enities.user import User
 
 
 class Document:
-    pass
+	pass
 
 
 @dataclass
 class Project:
-    """Project entity"""
+	"""Project entity"""
 
-    id: UUID
-    name: str
-    description: str
-    owner: UUID
-    created_at: datetime
+	id: UUID
+	name: str
+	description: str
+	owner: UUID
+	created_at: datetime
+
+	def is_owned_by(self, user_id: UUID):
+		return self.owner == user_id
