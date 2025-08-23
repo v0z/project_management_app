@@ -1,46 +1,33 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.infrastructure.orm import *
+
+if TYPE_CHECKING:
+    from app.infrastructure.orm.user_model import UserORM
 
 
 class ProjectORM(Base):
-	"""ORM model for Project entity."""
+    """ORM model for Project entity."""
 
-	__tablename__ = "projects"
+    __tablename__ = "projects"
 
-	id: Mapped[UUID] = mapped_column(
-		UUID(as_uuid=True),
-		primary_key=True,
-		default=uuid.uuid4,
-	)
-	name: Mapped[str] = mapped_column(
-		String(100),
-		index=True,
-		nullable=False,
-	)
-	description: Mapped[str] = mapped_column(
-		String,
-		nullable=True,
-	)
-	owner_id: Mapped[UUID] = mapped_column(
-		UUID(as_uuid=True),
-		ForeignKey("users.id", ondelete="CASCADE"),
-		nullable=False,
-	)
-	created_at: Mapped[datetime] = mapped_column(
-		DateTime(timezone=True),
-		server_default=func.now(),
-		default=datetime.utcnow,
-		nullable=False,
-	)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    description: Mapped[str] = mapped_column(String(1000), nullable=True)
+    owner_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=datetime.utcnow, nullable=False
+    )
 
-	owner: Mapped["UserORM"] = relationship("UserORM", back_populates="projects")
+    owner: Mapped["UserORM"] = relationship("UserORM", back_populates="projects")  # noqa: F405
 
-	def __repr__(self):
-		return f"<ProjectORM(id={self.id}, name={self.name}, description={self.description})>"
+    def __repr__(self):
+        return f"<ProjectORM(id={self.id}, name={self.name}, description={self.description})>"
