@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from app.core.exceptions import DatabaseError
@@ -25,7 +25,7 @@ class ProjectService:
         # name uniqueness is not enforced, so I don't check it
         try:
             project = Project(
-                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(UTC)
+                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(timezone.utc)
             )
             return self.repo.add(project=project)
         except DomainValidationError as e:
