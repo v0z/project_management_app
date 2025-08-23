@@ -23,6 +23,7 @@ class ProjectCreateRequest(BaseModel):
     name: str
     description: str | None = None
 
+
     """Strip whitespace from strings"""
     model_config = ConfigDict(str_strip_whitespace=True)
 

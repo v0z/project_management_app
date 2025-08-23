@@ -1,7 +1,8 @@
+
 import uuid
 from typing import cast
 
-from sqlalchemy import UUID
+from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -13,8 +14,8 @@ from app.infrastructure.orm.project_model import ProjectORM
 
 
 class SQLAlchemyProjectRepository(ProjectRepository):
-    def __init__(self, db: Session):
-        self.db = db
+	def __init__(self, db: Session):
+		self.db = db
 
     @staticmethod
     def _to_domain_entity(orm: ProjectORM) -> DomainProject:

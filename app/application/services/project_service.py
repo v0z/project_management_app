@@ -17,6 +17,7 @@ from app.presentation.schemas.project_schemas import ProjectUpdateRequest
 
 
 class ProjectService:
+  
     def __init__(self, repo: ProjectRepository):
         self.repo = repo
 

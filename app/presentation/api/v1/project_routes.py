@@ -17,6 +17,7 @@ from app.presentation.dependencies import get_current_user, get_project_service
 from app.presentation.schemas.auth_schemas import UserOut
 from app.presentation.schemas.project_schemas import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
 
+
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
@@ -40,6 +41,7 @@ async def create(
     current_user: UserOut = Depends(get_current_user),
     service: ProjectService = Depends(get_project_service),
 ):
+
     """Create a project and add it to the user"""
     try:
         # return the created project
