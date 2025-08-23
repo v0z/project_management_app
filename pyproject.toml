@@ -39,16 +39,36 @@ name = "fastapi-poetry-crud"
 packages = [{ include = "app" }]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 indent-width = 4
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.format]
 quote-style = "double"
-indent-style = "tab"
-skip-magic-trailing-comma = false
+indent-style = "space"
 line-ending = "auto"
+skip-magic-trailing-comma = true
 docstring-code-format = true
 
+
 [tool.ruff.lint]
-ignore = ["E501", "Q000", "D203"]
+# Select rule sets (common, safe, PEP8-focused)
+select = [
+    "E",    # pycodestyle errors (PEP 8)
+    "F",    # pyflakes
+    "B",    # flake8-bugbear (common pitfalls)
+    "UP",   # pyupgrade (modernize syntax)
+    "N",    # naming conventions
+    "W",    # pycodestyle warnings
+]
+# Ignore rules that we don’t want too strictly enforced
+ignore = [
+    "E501",  # line length handled by formatter
+    "D203",  # prefer no blank line before class (D211)
+    "D212",  # prefer summary on its own line (D213)
+    "D100",  # don’t require docstring for every module
+    "D104",  # don’t require docstring for every package
+    "B008",  # do not warn about function calls in default arguments
+]
+# Automatically fix what can be safely fixed
+fixable = ["ALL"]
