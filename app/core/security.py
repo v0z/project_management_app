@@ -1,4 +1,6 @@
+import re
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import jwt
 from jwt import PyJWTError
@@ -35,3 +37,22 @@ def decode_access_token(token, secret_key: str = settings.token_secret_key) -> d
         return jwt.decode(token, secret_key, algorithms=[settings.token_algorithm])
     except PyJWTError:
         raise
+
+
+def normalize_filename(filename: str) -> str:
+    """Sanitize the filename by removing unsafe characters"""
+
+    # remove leading/trailing whitespace and convert to lower case
+    filename = filename.strip().lower()
+
+    # if filename is empty, return a default name
+    if not filename:
+        return "unnamed_file"
+
+    # extract name + extension
+    file_name, ext = Path(filename).stem, Path(filename).suffix
+
+    # replace unsafe characters with "_"
+    safe_name = re.sub(r"[^a-zA-Z0-9_]+", "_", file_name)
+
+    return f"{safe_name}{ext}"

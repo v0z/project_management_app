@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
+from app.domain.exceptions.document_exceptions import DocumentFileDeleteError
 from app.domain.exceptions.domain_exceptions import DomainValidationError
 from app.domain.exceptions.project_exceptions import (
     ProjectCreateError,
@@ -16,8 +17,10 @@ from app.domain.repositories.project_repository import ProjectRepository
 from app.presentation.schemas.project_schemas import ProjectUpdateRequest
 
 
+
+
+
 class ProjectService:
-  
     def __init__(self, repo: ProjectRepository):
         self.repo = repo
 
@@ -72,7 +75,7 @@ class ProjectService:
         except DatabaseError as e:
             raise ProjectUpdateError(str(e)) from e
 
-    def delete_project(self, project_id: UUID, user_id: UUID) -> bool:
+    def delete_project(self, project_id: UUID, user_id: UUID, doc_service) -> bool:
         project = self.repo.get_by_id(project_id=project_id)
 
         if project is None:
@@ -82,7 +85,20 @@ class ProjectService:
         if not project.is_owned_by(user_id=user_id):
             raise ProjectPermissionError()
 
-        deleted = self.repo.delete(project_id=project_id)
-        if not deleted:
-            raise ProjectDeleteError()
-        return deleted
+        try:
+            # get all the paths to the documents
+            storage_paths = [doc.storage_path for doc in project.documents]
+
+            # delete the files from storage
+            for path in storage_paths:
+                doc_service.delete_file(storage_path=path)
+
+            # delete the project from the database
+            deleted = self.repo.delete(project_id=project_id)
+
+            if not deleted:
+                raise ProjectDeleteError("Repository deletion returned false")
+
+            return deleted
+        except (DatabaseError, DocumentFileDeleteError) as e:
+            raise ProjectDeleteError(e) from e

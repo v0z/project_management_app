@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.application.services.document_service import DocumentService
 from app.application.services.project_service import ProjectService
 from app.core.exceptions import DatabaseError
 from app.core.logger import logger
@@ -13,7 +14,7 @@ from app.domain.exceptions.project_exceptions import (
     ProjectRetrieveError,
     ProjectUpdateError,
 )
-from app.presentation.dependencies import get_current_user, get_project_service
+from app.presentation.dependencies import get_current_user, get_project_service, get_document_service
 from app.presentation.schemas.auth_schemas import UserOut
 from app.presentation.schemas.project_schemas import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
 
@@ -41,7 +42,6 @@ async def create(
     current_user: UserOut = Depends(get_current_user),
     service: ProjectService = Depends(get_project_service),
 ):
-
     """Create a project and add it to the user"""
     try:
         # return the created project
@@ -101,10 +101,11 @@ async def delete(
     project_id: UUID,
     current_user: UserOut = Depends(get_current_user),
     service: ProjectService = Depends(get_project_service),
+    doc_service: DocumentService = Depends(get_document_service),
 ):
     """Delete a project by id"""
     try:
-        service.delete_project(project_id=project_id, user_id=current_user.id)
+        service.delete_project(project_id=project_id, user_id=current_user.id, doc_service=doc_service)
         # status 204 "No content" is returned so there’s no response body
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
