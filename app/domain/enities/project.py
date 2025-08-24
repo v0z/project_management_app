@@ -1,12 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
+from app.domain.enities.document import Document
 from app.domain.exceptions.domain_exceptions import DomainValidationError
-
-
-class Document:
-    pass
 
 
 @dataclass
@@ -21,6 +18,7 @@ class Project:
     description: str
     owner: UUID
     created_at: datetime
+    documents: list[Document] = field(default_factory=list)
 
     def __post_init__(self):
         # validate after dataclass initializes fields

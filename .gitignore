@@ -209,3 +209,4 @@ __marimo__/
 .coverage
 pytest.ini
 .DS_Store
+/documents/

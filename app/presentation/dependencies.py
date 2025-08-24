@@ -2,8 +2,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.application.services.auth_service import AuthService
+from app.application.services.document_service import DocumentService
 from app.application.services.project_service import ProjectService
 from app.core.security import decode_access_token
+from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.repositories.user_repository import UserRepository
 from app.presentation.schemas.auth_schemas import UserOut
@@ -21,6 +23,11 @@ def get_project_repository() -> ProjectRepository:
     raise NotImplementedError
 
 
+def get_document_repository() -> DocumentRepository:
+    """provides a concrete DocumentRepository implementation which is wired in main.py"""
+    raise NotImplementedError
+
+
 def get_auth_service() -> AuthService:
     """provides an auth service with a concrete UserRepository implementation"""
     raise NotImplementedError
@@ -28,6 +35,11 @@ def get_auth_service() -> AuthService:
 
 def get_project_service() -> ProjectService:
     """provides a project service with a concrete ProjectRepository implementation"""
+    return NotImplementedError
+
+
+def get_document_service() -> DocumentService:
+    """provides a document service with a concrete DocumentService implementation"""
     return NotImplementedError
 
 

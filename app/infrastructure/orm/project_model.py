@@ -30,5 +30,8 @@ class ProjectORM(Base):
 
     owner: Mapped["UserORM"] = relationship("UserORM", back_populates="projects")  # noqa: F405
 
+    # one-to-many relationship with documents
+    documents = relationship("DocumentORM", back_populates="project", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<ProjectORM(id={self.id}, name={self.name}, description={self.description})>"

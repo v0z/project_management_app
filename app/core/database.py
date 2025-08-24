@@ -6,11 +6,11 @@ from app.core.config import Settings
 settings = Settings()
 
 DATABASE_URL = "postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}".format(
-	db_username=settings.db_username,
-	db_password=settings.db_password,
-	db_host=settings.db_host,
-	db_port=settings.db_port,
-	db_name=settings.db_name,
+    db_username=settings.db_username,
+    db_password=settings.db_password,
+    db_host=settings.db_host,
+    db_port=settings.db_port,
+    db_name=settings.db_name,
 )
 
 # Create the SQLAlchemy engine
