@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from app.core.exceptions import DatabaseError
@@ -14,21 +14,22 @@ from app.domain.exceptions.project_exceptions import (
     ProjectUpdateError,
 )
 from app.domain.repositories.project_repository import ProjectRepository
+from app.domain.storage.document_storage import DocumentStorage
 from app.presentation.schemas.project_schemas import ProjectUpdateRequest
 
-
-
+# Create storage once and reuse
 
 
 class ProjectService:
-    def __init__(self, repo: ProjectRepository):
+    def __init__(self, repo: ProjectRepository, storage: DocumentStorage):
         self.repo = repo
+        self.storage = storage
 
     def add_project(self, name: str, description: str, user_id: UUID) -> Project:
         # name uniqueness is not enforced, so I don't check it
         try:
             project = Project(
-                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(timezone.utc)
+                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(UTC)
             )
             return self.repo.add(project=project)
         except DomainValidationError as e:
@@ -75,7 +76,7 @@ class ProjectService:
         except DatabaseError as e:
             raise ProjectUpdateError(str(e)) from e
 
-    def delete_project(self, project_id: UUID, user_id: UUID, doc_service) -> bool:
+    async def delete_project(self, project_id: UUID, user_id: UUID, doc_service) -> bool:
         project = self.repo.get_by_id(project_id=project_id)
 
         if project is None:
@@ -91,7 +92,8 @@ class ProjectService:
 
             # delete the files from storage
             for path in storage_paths:
-                doc_service.delete_file(storage_path=path)
+                # doc_service.delete_file(storage_path=path)
+                await self.storage.remove(storage_path=path)
 
             # delete the project from the database
             deleted = self.repo.delete(project_id=project_id)

@@ -12,6 +12,7 @@ class DocumentRepository(ABC):
         """List all documents attached to the project"""
         pass
 
+    @abstractmethod
     def get_by_id(self, user_id: UUID, document_id: UUID) -> Document | None:
         """Get a document by its ID"""
         pass

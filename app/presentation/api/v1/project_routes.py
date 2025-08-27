@@ -14,10 +14,9 @@ from app.domain.exceptions.project_exceptions import (
     ProjectRetrieveError,
     ProjectUpdateError,
 )
-from app.presentation.dependencies import get_current_user, get_project_service, get_document_service
+from app.presentation.dependencies import get_current_user, get_document_service, get_project_service
 from app.presentation.schemas.auth_schemas import UserOut
 from app.presentation.schemas.project_schemas import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
-
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -105,7 +104,7 @@ async def delete(
 ):
     """Delete a project by id"""
     try:
-        service.delete_project(project_id=project_id, user_id=current_user.id, doc_service=doc_service)
+        await service.delete_project(project_id=project_id, user_id=current_user.id, doc_service=doc_service)
         # status 204 "No content" is returned so there’s no response body
     except ProjectNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e

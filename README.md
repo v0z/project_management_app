@@ -6,22 +6,29 @@ Dependency management is handled with **Poetry**, and developer tasks are automa
 ---
 
 ## ✨ Features
-- **FastAPI** backend with modular architecture and **Pydantic** schemas  
+- **FastAPI** backend with modular architecture and **Pydantic** schemas for validation
 - **PostgreSQL** database (containerized)  
-- **pgAdmin** for database management (containerized) 
+- **pgAdmin** web-interface for database management (containerized) 
 - **Clean architecture**: Application, Domain, Infrastructure, Presentation 
 - **Docker Compose** for full containerized setup
-- **Poetry** for dependency management 
+- **Poetry** for dependency management
 - **GitHub Actions** CI workflow for:  
   - Code quality and linting (`Ruff, isort, Black, mypy`)  
   - Unit testing across multiple Python versions  
   - Dependency checks for outdated packages
   - Security scans with Bandit
+- **Custom File Logging**:  
+  The application uses a custom logging system that writes logs to a `logs/` directory.  
+  All logs are stored in a single file named `app.log`.
+- **Document Storage**:  
+  Document uploads are configurable — they can be stored either on the **local filesystem** or in an **AWS S3 bucket**.  
+  - **Local Storage**: Documents are saved in the `documents/` folder. Each project has its own subdirectory named after the `project_id`, containing all its documents.  
+  - **S3 Storage**: Documents are stored in the configured S3 bucket. Each project gets its own prefix (acting as a subdirectory), where all documents for that project are kept.
+- **Document Management**:  
+  Uploaded files can be **downloaded** and **deleted**.  
+  When the last document in a project’s directory/prefix is deleted, the directory/prefix itself is also removed (both locally and in S3).
 - **Makefile** for common developer tasks
-- **File Handling & Logging**:
-  - Custom logging system writes logs to a logs/ folder (app.log). 
-  - Uploaded documents are stored in a documents/ folder. 
-  - Each project has its own subdirectory named after its project_id, containing all related files.
+
 
 ---
 # 🚀 Getting Started
@@ -46,21 +53,38 @@ This will create a virtual environment and install all dependencies defined in `
 Create a `.env` file in the project root with the following content:
 
 ```ini
+# custom logging configuration
+LOGGER_LOG_DIR=logs
+LOGGER_FILENAME=app.log
+
 # auth config
 TOKEN_SECRET_KEY=some_super_secret_key
 TOKEN_ALGORITHM=HS256
 TOKEN_EXPIRE_MINUTES=60
 
-# Database configuration
+# Database configuration with local dev database creds
 DB_NAME=pm_database
 DB_USERNAME=root
 DB_PASSWORD=toor
 DB_PORT=5432
 DB_HOST=localhost # inside pgadmin this should be your postgres database service name in your docker-compose file, in my case it's: postgres_db
 
-# pgAdmin configuration
+# pgAdmin configuration 
 PGADMIN_DEFAULT_EMAIL=fast@api.com
 PGADMIN_DEFAULT_PASSWORD=toor
+
+# files
+ALLOWED_TYPES='["application/pdf", "image/png", "image/jpeg"]'
+MAX_FILE_SIZE_IN_MB=5
+
+# set the storage backend to use -  local or s3
+STORAGE_BACKEND=s3
+
+# aws environment variables
+AWS_S3_BUCKET_NAME=super_unique_bucket_name_123
+AWS_ACCESS_KEY_ID=ABC
+AWS_SECRET_ACCESS_KEY=abc123
+
 ```
 
 ### 🔑 Generating a Secure Secret Key
@@ -187,6 +211,22 @@ make test
 
 ---
 
+# 🏗 Project Architecture Overview
+
+This project follows a layered (clean architecture) structure to keep the code modular, maintainable, and testable.
+
+| Layer / Folder         | Purpose |
+|-------------------------|---------|
+| **`app/main.py`**       | Entry point of the FastAPI application. |
+| **`app/core/`**         | Cross-cutting concerns and core infrastructure:<br>- `config.py`: App settings (env vars).<br>- `database.py`: DB connection/session.<br>- `logger.py`: Logging to `logs/app.log`.<br>- `security.py`: Security utilities (JWT, hashing).<br>- `exceptions.py`: Shared exceptions. |
+| **`app/domain/`**       | Business/domain logic (problem space):<br>- `entities/`: Domain models (`User`, `Project`, `Document`).<br>- `repositories/`: Abstract repository interfaces.<br>- `storage/`: Abstract storage interfaces + utils.<br>- `exceptions/`: Domain-specific errors. |
+| **`app/application/`**  | Application services — implements business use cases:<br>`auth_service.py`, `project_service.py`, `document_service.py`. |
+| **`app/infrastructure/`** | Technology-specific implementations:<br>- `orm/`: SQLAlchemy models.<br>- `sqlalchemy_*_repository.py`: Repository implementations.<br>- `storage/`: File system & S3 storage implementations. |
+| **`app/presentation/`** | Presentation/API layer:<br>- `api/v1/`: FastAPI routes (auth, projects, documents).<br>- `schemas/`: Pydantic request/response models.<br>- `dependencies.py`: Dependency injection. |
+| **`scripts/`**          | Utility scripts (e.g., `recreate_db.py` to reset DB). |
+| **`tests/`**            | Automated tests organized by feature/layer. |
+
+
 ## 📂 Project Structure
 ```
 .
@@ -222,6 +262,7 @@ make test
 │   │   │   └── user_repository.py
 │   │   └── storage
 │   │       ├── document_storage.py
+│   │       ├── exceptions
 │   │       └── utils.py
 │   ├── infrastructure
 │   │   ├── orm
@@ -232,7 +273,8 @@ make test
 │   │   ├── sqlalchemy_project_repository.py
 │   │   ├── sqlalchemy_user_repository.py
 │   │   └── storage
-│   │       └── file_system_document_storage.py
+│   │       ├── file_system_document_storage.py
+│   │       └── s3_document_storage.py
 │   ├── main.py
 │   └── presentation
 │       ├── api

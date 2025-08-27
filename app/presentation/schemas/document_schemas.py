@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -7,14 +6,15 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 
 class DocumentSchema(BaseModel):
     id: UUID
-    name: Optional[str] | None = None
+    name: str | None | None = None
     file_name: str
     project_id: UUID
     content_type: str
     storage_path: str
-    description: Optional[str] | None = None
+    description: str | None | None = None
     created_at: datetime
-    updated_at: Optional[datetime] | None = None
+    updated_at: datetime | None | None = None
+    storage_backend: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -28,10 +28,10 @@ class DocumentSchema(BaseModel):
             return value.strftime("%Y-%m-%d %H:%M:%S")
         return None
 
-class DocumentDetailSchema(BaseModel):
-    name: Optional[str] | None = None
-    description: Optional[str] | None = None
 
+class DocumentDetailSchema(BaseModel):
+    name: str | None | None = None
+    description: str | None | None = None
 
 
 class DocumentFileUploadSchema(BaseModel):

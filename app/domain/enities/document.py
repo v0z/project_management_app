@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from app.domain.exceptions.domain_exceptions import DomainValidationError
@@ -19,9 +18,10 @@ class Document:
     content_type: str
     storage_path: str
     created_at: datetime
+    storage_backend: str
     updated_at: datetime | None = None
-    name: Optional[str] = ""
-    description: Optional[str] = ""
+    name: str | None = ""
+    description: str | None = ""
 
     @staticmethod
     def _validate_name(name: str):
