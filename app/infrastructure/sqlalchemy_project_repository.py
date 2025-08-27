@@ -1,14 +1,14 @@
 import uuid
 from typing import cast
-
 from uuid import UUID
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
-from app.domain.enities.project import Project as DomainProject
 from app.domain.enities.document import Document
+from app.domain.enities.project import Project as DomainProject
 from app.domain.repositories.project_repository import ProjectRepository
 from app.infrastructure.orm import ProjectORM
 
@@ -30,6 +30,8 @@ class SQLAlchemyProjectRepository(ProjectRepository):
                 project_id=doc.project_id,
                 storage_path=doc.storage_path,
                 created_at=doc.created_at,
+                description=doc.description,
+                storage_backend=doc.storage_backend,
             )
             for doc in orm.documents
         ]

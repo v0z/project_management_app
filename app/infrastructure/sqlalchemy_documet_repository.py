@@ -1,14 +1,12 @@
-from datetime import datetime, UTC, timezone
-from typing import Type, List
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import DatabaseError
-from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.enities.document import Document
-
+from app.domain.repositories.document_repository import DocumentRepository
 from app.infrastructure.orm import DocumentORM, ProjectORM
 
 
@@ -17,7 +15,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
         self.db = db
 
     @staticmethod
-    def _to_domain_entity(orm: DocumentORM | List[DocumentORM]) -> list[Document] | Document:
+    def _to_domain_entity(orm: DocumentORM | list[DocumentORM]) -> list[Document] | Document:
         """Map ORM model to domain model"""
         if isinstance(orm, list):
             # add the document list to the project
@@ -32,6 +30,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
                     description=doc.description,
                     created_at=doc.created_at,
                     updated_at=doc.updated_at,
+                    storage_backend=doc.storage_backend,
                 )
                 for doc in orm
             ]
@@ -46,6 +45,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
                 description=orm.description,
                 created_at=orm.created_at,
                 updated_at=orm.updated_at,
+                storage_backend=orm.storage_backend,
             )
 
     def list_by_project(self, user_id: UUID, project_id: UUID) -> list[Document]:
@@ -64,15 +64,6 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
 
     def create(self, project_id: UUID, document: Document):
         """Persist the Document in the database"""
-        # orm = DocumentORM(
-        #     id=document.id,
-        #     name=document.name,
-        #     file_name=document.file_name,
-        #     project_id=document.project_id,
-        #     content_type=document.content_type,
-        #     storage_path=document.storage_path,
-        #     description=document.description,
-        # )
         orm = DocumentORM(**document.__dict__)  # type: ignore
 
         try:
@@ -105,12 +96,15 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
             if not orm:
                 raise DatabaseError(f"Document with ID {document.id} not found")
 
-            orm.file_name = document.file_name
-            orm.name = document.name
-            orm.description = document.description
-            orm.content_type = document.content_type
-            orm.storage_path = document.storage_path
-            orm.updated_at = datetime.now(timezone.utc)
+            # dataclass
+            data = vars(document)
+
+            for key, value in data.items():
+                if hasattr(orm, key):  # only update fields that exist in ORM
+                    setattr(orm, key, value)
+
+            # set update time
+            orm.updated_at = datetime.now(UTC)
 
             self.db.commit()
             self.db.refresh(orm)
@@ -122,9 +116,12 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
     def get_by_id(self, user_id: UUID, document_id: UUID) -> Document | None:
         """Get a document by its ID"""
         try:
-            orm = (self.db.query(DocumentORM).join(DocumentORM.project)
-                   .filter(DocumentORM.id == document_id, ProjectORM.owner_id == user_id)
-                   .first())
+            orm = (
+                self.db.query(DocumentORM)
+                .join(DocumentORM.project)
+                .filter(DocumentORM.id == document_id, ProjectORM.owner_id == user_id)
+                .first()
+            )
             if orm is None:
                 # I do not throw NotFound exception here but in service instead
                 return None

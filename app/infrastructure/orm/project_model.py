@@ -1,6 +1,5 @@
-import typing as t
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
@@ -25,7 +24,7 @@ class ProjectORM(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), server_default=func.now(), default=datetime.now(UTC), nullable=False
     )
 
     owner: Mapped["UserORM"] = relationship("UserORM", back_populates="projects")  # noqa: F405

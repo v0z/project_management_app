@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     pgadmin_default_email: EmailStr = "fast@api.com"
     pgadmin_default_password: str = ""
 
+    allowed_types: list = []
+    max_file_size: int = 5
+
+    # storage type: local or cloud
+    storage_backend: str = ""
+
+    # aws environment variables
+    aws_s3_bucket_name: str = ""
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

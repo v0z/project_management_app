@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -11,6 +10,11 @@ class DocumentSchema(BaseModel):
     project_id: UUID
     content_type: str
     storage_path: str
+    created_at: datetime
+    storage_backend: str
+    updated_at: datetime | None = None
+    name: str | None = ""
+    description: str | None = ""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,7 +27,7 @@ class ProjectResponse(BaseModel):
     description: str = None
     owner: UUID
     created_at: datetime
-    documents: List[DocumentSchema] = []
+    documents: list[DocumentSchema] = []
 
     @field_serializer("created_at")
     def serialize_created_at(self, value: datetime) -> str:
