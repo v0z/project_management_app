@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import DatabaseError
 from app.domain.enities.document import Document
 from app.domain.repositories.document_repository import DocumentRepository
-from app.infrastructure.orm import DocumentORM, ProjectORM
+from app.infrastructure.orm import DocumentORM, ProjectORM, UserProjectRoleORM
 
 
 class SQLAlchemyDocumentRepository(DocumentRepository):
@@ -15,7 +16,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
         self.db = db
 
     @staticmethod
-    def _to_domain_entity(orm: DocumentORM | list[DocumentORM]) -> list[Document] | Document:
+    def to_domain_entity(orm: DocumentORM | list[DocumentORM]) -> list[Document] | Document:
         """Map ORM model to domain model"""
         if isinstance(orm, list):
             # add the document list to the project
@@ -51,14 +52,18 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
     def list_by_project(self, user_id: UUID, project_id: UUID) -> list[Document]:
         """List all Documents for a given project ID"""
         try:
+            # show only if the current user is a participant of the project
             orm_documents = (
                 self.db.query(DocumentORM)
                 .join(DocumentORM.project)
-                .filter(DocumentORM.project_id == project_id, ProjectORM.owner_id == user_id)
+                .filter(
+                    DocumentORM.project_id == project_id,
+                    ProjectORM.participants.any(UserProjectRoleORM.user_id == user_id),
+                )
                 .all()
             )
 
-            return self._to_domain_entity(orm_documents)
+            return self.to_domain_entity(orm_documents)
         except SQLAlchemyError as e:
             raise DatabaseError(str(e)) from e
 
@@ -70,7 +75,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
             self.db.add(orm)
             self.db.commit()
             self.db.refresh(orm)
-            return self._to_domain_entity(orm)
+            return self.to_domain_entity(orm)
         except SQLAlchemyError as e:
             self.db.rollback()
             raise DatabaseError(str(e)) from e
@@ -84,7 +89,7 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
                 .first()
             )
             if orm_document:
-                return self._to_domain_entity(orm_document)
+                return self.to_domain_entity(orm_document)
             return None
         except SQLAlchemyError as e:
             raise DatabaseError(str(e)) from e
@@ -108,24 +113,24 @@ class SQLAlchemyDocumentRepository(DocumentRepository):
 
             self.db.commit()
             self.db.refresh(orm)
-            return self._to_domain_entity(orm)
+            return self.to_domain_entity(orm)
         except SQLAlchemyError as e:
             self.db.rollback()
             raise DatabaseError(str(e)) from e
 
-    def get_by_id(self, user_id: UUID, document_id: UUID) -> Document | None:
+    def get_by_id(
+        self, user_id: UUID, document_id: UUID, to_orm=True
+    ) -> None | list[Document] | Document | type[DocumentORM]:
         """Get a document by its ID"""
         try:
-            orm = (
-                self.db.query(DocumentORM)
-                .join(DocumentORM.project)
-                .filter(DocumentORM.id == document_id, ProjectORM.owner_id == user_id)
-                .first()
-            )
+            orm = self.db.query(DocumentORM).filter(DocumentORM.id == document_id).first()
+
             if orm is None:
                 # I do not throw NotFound exception here but in service instead
                 return None
-            return self._to_domain_entity(orm)
+            if to_orm:
+                return self.to_domain_entity(orm)
+            return orm
         except SQLAlchemyError as e:
             raise DatabaseError(str(e)) from e
 

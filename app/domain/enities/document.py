@@ -37,11 +37,21 @@ class Document:
                 f"Document description is too long, max {Document.MAX_DESCRIPTION_LENGTH} characters allowed"
             )
 
-    def update(self, name: str | None = None, description: str | None = None):
+    def update(self, updates: dict):
         """Update document fields with validation"""
-        if name is not None:
-            self._validate_name(name=name)
-            self.name = name
-        if description is not None:
-            self._validate_description(description=description)
-            self.description = description
+        # if name is not None:
+        #     self._validate_name(name=name)
+        #     self.name = name
+        # if description is not None:
+        #     self._validate_description(description=description)
+        #     self.description = description
+
+        for key, value in updates.items():
+            if value is not None:
+                if key == "name":
+                    self._validate_name(name=value)
+                elif key == "description":
+                    self._validate_description(description=value)
+
+                # dynamically update attributes
+                setattr(self, key, value)

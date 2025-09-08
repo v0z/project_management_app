@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 # Copy all project files BEFORE installing dependencies
 COPY pyproject.toml poetry.lock pytest.ini ./
 COPY ./app ./app
-COPY ./tests ./tests
 
 # Install dependencies (including dev) as CI does
 RUN poetry install --with dev --no-root && rm -rf $POETRY_CACHE_DIR;

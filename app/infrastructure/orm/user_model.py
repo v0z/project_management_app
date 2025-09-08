@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
@@ -10,6 +10,8 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.infrastructure.orm.project_model import ProjectORM
+    from app.infrastructure.orm.user_project_role_model import \
+        UserProjectRoleORM
 
 
 class UserORM(Base):
@@ -18,17 +20,25 @@ class UserORM(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
+
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now(UTC), nullable=False
+        DateTime(timezone=True), server_default=func.now(), default=datetime.now(timezone.utc), nullable=False
     )
 
     projects: Mapped[list["ProjectORM"]] = relationship(  # noqa: F405
         "ProjectORM",
         back_populates="owner",
         cascade="all, delete-orphan",  # noqa: F405
+    )
+
+    project_roles: Mapped[list["UserProjectRoleORM"]] = relationship(
+        "UserProjectRoleORM", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self):

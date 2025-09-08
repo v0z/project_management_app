@@ -1,7 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from uuid import UUID
 
 from app.domain.enities.document import Document
+from app.infrastructure.orm import DocumentORM
 
 
 class DocumentRepository(ABC):
@@ -13,7 +14,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, user_id: UUID, document_id: UUID) -> Document | None:
+    def get_by_id(self, user_id: UUID, document_id: UUID, to_orm=False) -> Document | DocumentORM | None:
         """Get a document by its ID"""
         pass
 
@@ -34,4 +35,9 @@ class DocumentRepository(ABC):
     @abstractmethod
     def delete(self, document_id: UUID):
         """Delete a document by its ID"""
+        pass
+
+    @abstractstaticmethod
+    def to_domain_entity(document_orm: DocumentORM):
+        """Convert orm to domain"""
         pass

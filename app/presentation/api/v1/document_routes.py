@@ -1,15 +1,21 @@
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, UploadFile, status
-from starlette.responses import FileResponse, StreamingResponse
+from fastapi import (APIRouter, Body, Depends, Form, HTTPException, UploadFile,
+                     status, File)
 
 from app.application.services.document_service import DocumentService
 from app.core.config import settings
 from app.core.logger import logger
-from app.domain.exceptions.document_exceptions import DocumentCreateError, DocumentFileSaveError, DocumentRetrieveError
-from app.presentation.dependencies import get_current_user, get_document_service
+from app.domain.exceptions.document_exceptions import (
+    DocumentAccessError, DocumentCreateError, DocumentFileSaveError,
+    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmpty)
+from app.domain.exceptions.project_exceptions import ProjectPermissionError
+from app.presentation.dependencies import (get_current_user,
+                                           get_document_service)
 from app.presentation.schemas.auth_schemas import UserOut
-from app.presentation.schemas.document_schemas import DocumentDetailSchema, DocumentSchema
+from app.presentation.schemas.document_schemas import (DocumentDetailSchema,
+                                                       DocumentSchema)
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
@@ -25,10 +31,10 @@ async def list_documents(
         return service.list_documents(user_id=current_user.id, project_id=project_id)
     except DocumentRetrieveError as e:
         logger.error(e)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         logger.error(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/", response_model=DocumentSchema)
@@ -42,13 +48,13 @@ async def upload_document(
     description: str | None = Form(
         default=None, max_length=300, description="Optional description", title="Document Description"
     ),
-    use_cloud: bool = False,
+    current_user: UserOut = Depends(get_current_user),
 ):
-    # no file is uploaded
+    # no file is selected for upload
     if not uploaded_file:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files uploaded")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file was uploaded")
 
-    max_file_size: int = 1024 * 1024 * settings.max_file_size
+    max_file_size: int = 1024 * 1024 * settings.max_file_size  # mb to bytes
     allowed_types: list = settings.allowed_types
 
     # restrict allowed content types
@@ -61,25 +67,22 @@ async def upload_document(
 
     details = {"name": name if name else None, "description": description if description else None}
 
-    # save to folder
-    if not use_cloud:
-        try:
-            # upload the document
-            return await service.upload_document(project_id=project_id, file_to_upload=uploaded_file, details=details)
-
-        except DocumentFileSaveError as e:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
-        except DocumentCreateError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-        except Exception as e:
-            logger.error(e)
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e) from e
-
-    else:
-        raise NotImplementedError
+    try:
+        # upload the document
+        return await service.upload_document(
+            project_id=project_id, user_id=current_user.id, file_to_upload=uploaded_file, details=details
+        )
+    except ProjectPermissionError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
+    except DocumentFileSaveError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+    except DocumentCreateError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
 
-# @router.get("/{document_id}", response_class=FileResponse, status_code=status.HTTP_200_OK)
 @router.get("/{document_id}", status_code=status.HTTP_200_OK)
 async def download_document(
     document_id: UUID,
@@ -88,51 +91,53 @@ async def download_document(
 ):
     """Get a single document by its ID and return the file"""
     try:
-        document = service.get_document(user_id=current_user.id, document_id=document_id)
-
-        # open a local file
-        if document.storage_backend == "local":
-            return FileResponse(
-                path=document.storage_path, filename=document.file_name, media_type=document.content_type
-            )
-        # TODO switch
-        # download an s3 file
-        if document.storage_backend in ["s3"]:
-            # get the s3 obj from storage
-            s3_object = await service.storage.download(document.storage_path)
-
-            headers = {
-                "Content-Disposition": f'attachment; filename="{document.file_name}"',
-                "Content-Length": str(s3_object.get("ContentLength")),
-                "Last-Modified": s3_object.get("LastModified").strftime("%a, %d %b %Y %H:%M:%S GMT"),
-            }
-
-            return StreamingResponse(s3_object["Body"].iter_chunks(), media_type=document.content_type, headers=headers)
-
+        # depending on storage will return a FileResponse or a StreamingResponse
+        return await service.download_document(user_id=current_user.id, document_id=document_id)
     except DocumentRetrieveError as e:
-        logger.error(e)
+        logger.warning(f"Document not found: {e}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except DocumentAccessError as e:
+        logger.warning(f"Unauthorized access: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
+    except DocumentUnsupportedStorageBackendError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
-        logger.error(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e) from e
+        logger.error(f"Unexpected error while downloading {document_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e) from e
 
 
 @router.patch("/{document_id}", response_model=DocumentSchema)
 async def update_document(
     document_id: UUID,
-    data: DocumentDetailSchema = Body(...),
+    name: Optional[str] = Form(default=None, max_length=100, description="Optional name for the document", title="Document Name"),
+    description: Optional[str] = Form(default=None, max_length=300, description="Optional description", title="Document Description"),
+    file: UploadFile | str = File(default=None, description="Optional update file"),
     current_user: UserOut = Depends(get_current_user),
     service: DocumentService = Depends(get_document_service),
 ):
     """Update document details like name and description"""
     try:
-        return service.update_document(user_id=current_user.id, document_id=document_id, data=data)
+        updates = DocumentDetailSchema()
+        if name is not None:
+            updates.name = name
+        if description is not None:
+            updates.description = description
+
+        return await service.update_document(user_id=current_user.id, document_id=document_id, data=updates,  uploaded_file=file)
+    except DocumentAccessError as e:
+        logger.warning(f"Unauthorized access: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
+    except DocumentUpdateEmpty as e:
+        raise HTTPException(status_code=status.HTTP_202_ACCEPTED, detail=str(e)) from e
     except DocumentRetrieveError as e:
         logger.error(e)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{document_id}", status_code=status.HTTP_200_OK)
 async def delete_document(
     document_id: UUID,
     current_user: UserOut = Depends(get_current_user),
@@ -141,9 +146,11 @@ async def delete_document(
     """Delete a document by its ID"""
     try:
         await service.delete_document(user_id=current_user.id, document_id=document_id)
+        # instead HTTP_204_NO_CONTENT, return an informative response
+        return {"message": f"Document with ID: {document_id} was successfully deleted"}
     except DocumentRetrieveError as e:
         logger.error(e)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except Exception as e:
         logger.error(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
