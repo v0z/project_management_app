@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from functools import lru_cache
 
 import uvicorn
@@ -7,7 +8,7 @@ from app.application.services import AuthService, ProjectService
 from app.application.services.document_service import DocumentService
 from app.application.services.user_project_role_service import \
     UserProjectRoleService
-from app.core.database import get_db, settings
+from app.core.database import get_db, settings, Base, engine
 from app.core.logger import logger
 from app.domain.storage.document_storage import DocumentStorage
 from app.infrastructure import (SQLAlchemyProjectRepository,
@@ -35,8 +36,11 @@ app.include_router(auth_router)
 app.include_router(project_router)
 app.include_router(document_router)
 
-
-# app.include_router(document_router)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create tables
+    Base.metadata.create_all(bind=engine)
+    yield
 
 
 # TODO put in a livespan event or move to a dependency container
