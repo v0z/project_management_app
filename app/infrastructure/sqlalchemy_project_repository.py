@@ -3,7 +3,7 @@ from typing import cast
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import DatabaseError
 from app.domain.enities import Project

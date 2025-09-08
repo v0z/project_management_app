@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, List
+from datetime import datetime, UTC
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -29,7 +29,7 @@ class ProjectORM(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), server_default=func.now(), default=datetime.now(UTC), nullable=False
     )
 
     # owner relationship
@@ -39,7 +39,7 @@ class ProjectORM(Base):
     documents = relationship("DocumentORM", back_populates="project", cascade="all, delete-orphan")
 
     # association with roles
-    participants: Mapped[List["UserProjectRoleORM"]] = relationship(
+    participants: Mapped[list["UserProjectRoleORM"]] = relationship(
         "UserProjectRoleORM", back_populates="project", cascade="all, delete-orphan"
     )
 

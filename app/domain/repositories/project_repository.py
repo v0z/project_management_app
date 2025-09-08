@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from app.domain.enities.project import Project
-from app.domain.enities.user_project_role import UserProjectRole
 
 
 class ProjectRepository(ABC):

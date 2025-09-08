@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError

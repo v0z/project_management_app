@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import UUID
 
 from app.domain.enities.document import Document
-from app.domain.enities.user import User
 from app.domain.enities.user_project_role import UserProjectRole
 from app.domain.exceptions.domain_exceptions import DomainValidationError
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy.exc import DatabaseError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import DatabaseError

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from app.application.services.user_project_role_service import \
@@ -29,7 +29,7 @@ class ProjectService:
         # name uniqueness is not enforced, so I don't check it
         try:
             project = Project(
-                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(timezone.utc)
+                id=uuid4(), name=name, description=description, owner=user_id, created_at=datetime.now(UTC)
             )
 
             # save the project to db

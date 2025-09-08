@@ -22,7 +22,7 @@ isort:
 
 typing:
 	mypy app
-
+	#pyrefly check app
 
 recreate_db:
 	python -m scripts.recreate_db

@@ -77,11 +77,11 @@ class DocumentUnsupportedStorageBackendError(Exception):
         self.storage_backend = storage_backend
         super().__init__(f"Unsupported storage backend: {self.storage_backend}")
 
-class DocumentUpdateEmpty(Exception):
+class DocumentUpdateEmptyError(Exception):
     """Raised when the document update has no changes"""
 
     def __init__(self):
-        super().__init__(f"No changes in document")
+        super().__init__("No changes in document")
 
 
 async def document_exception_handler(func):
@@ -96,7 +96,7 @@ async def document_exception_handler(func):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         except DocumentRetrieveError as e:
             logger.error(e)
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
         except Exception as e:
             logger.error(e)

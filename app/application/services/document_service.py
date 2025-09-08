@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Any, Coroutine
+from typing import Any
+from collections.abc import Coroutine
 from uuid import UUID, uuid4
 
 from black import timezone
@@ -14,7 +15,7 @@ from app.domain.enities.user_project_role import RoleEnum
 from app.domain.exceptions.document_exceptions import (
     DocumentAccessError, DocumentCreateError, DocumentDBDeleteError,
     DocumentDeleteRightsError, DocumentFileDeleteError, DocumentFileSaveError,
-    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmpty)
+    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmptyError)
 from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.storage.document_storage import DocumentStorage
 from app.infrastructure.orm import DocumentORM
@@ -159,7 +160,7 @@ class DocumentService:
         update_data = {key: value for key, value in data.model_dump(exclude_unset=True).items() if value}
 
         if not update_data and not uploaded_file:
-            raise DocumentUpdateEmpty
+            raise DocumentUpdateEmptyError
 
         old_storage_path = document.storage_path
         new_document_data = {}

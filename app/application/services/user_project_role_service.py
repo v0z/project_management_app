@@ -1,8 +1,6 @@
 from uuid import UUID
 
-from app.application.services import AuthService
 from app.core.exceptions import DatabaseError
-from app.domain.enities import Project, User
 from app.domain.enities.user_project_role import RoleEnum, UserProjectRole
 from app.domain.exceptions.user_project_role_exceptions import (
     ProjectRoleAddByUsernameError, ProjectRoleAddNotAuthorizedError,

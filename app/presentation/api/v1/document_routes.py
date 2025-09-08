@@ -1,7 +1,6 @@
-from typing import Optional
 from uuid import UUID
 
-from fastapi import (APIRouter, Body, Depends, Form, HTTPException, UploadFile,
+from fastapi import (APIRouter, Depends, Form, HTTPException, UploadFile,
                      status, File)
 
 from app.application.services.document_service import DocumentService
@@ -9,7 +8,7 @@ from app.core.config import settings
 from app.core.logger import logger
 from app.domain.exceptions.document_exceptions import (
     DocumentAccessError, DocumentCreateError, DocumentFileSaveError,
-    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmpty)
+    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmptyError)
 from app.domain.exceptions.project_exceptions import ProjectPermissionError
 from app.presentation.dependencies import (get_current_user,
                                            get_document_service)
@@ -31,10 +30,10 @@ async def list_documents(
         return service.list_documents(user_id=current_user.id, project_id=project_id)
     except DocumentRetrieveError as e:
         logger.error(e)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except Exception as e:
         logger.error(e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post("/", response_model=DocumentSchema)
@@ -109,8 +108,8 @@ async def download_document(
 @router.patch("/{document_id}", response_model=DocumentSchema)
 async def update_document(
     document_id: UUID,
-    name: Optional[str] = Form(default=None, max_length=100, description="Optional name for the document", title="Document Name"),
-    description: Optional[str] = Form(default=None, max_length=300, description="Optional description", title="Document Description"),
+    name: str | None = Form(default=None, max_length=100, description="Optional name for the document", title="Document Name"),
+    description: str | None = Form(default=None, max_length=300, description="Optional description", title="Document Description"),
     file: UploadFile | str = File(default=None, description="Optional update file"),
     current_user: UserOut = Depends(get_current_user),
     service: DocumentService = Depends(get_document_service),
@@ -127,7 +126,7 @@ async def update_document(
     except DocumentAccessError as e:
         logger.warning(f"Unauthorized access: {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)) from e
-    except DocumentUpdateEmpty as e:
+    except DocumentUpdateEmptyError as e:
         raise HTTPException(status_code=status.HTTP_202_ACCEPTED, detail=str(e)) from e
     except DocumentRetrieveError as e:
         logger.error(e)

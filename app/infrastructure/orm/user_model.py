@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
@@ -28,7 +28,7 @@ class UserORM(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), server_default=func.now(), default=datetime.now(UTC), nullable=False
     )
 
     projects: Mapped[list["ProjectORM"]] = relationship(  # noqa: F405

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 
@@ -19,5 +18,5 @@ class UserProjectRole:
     user_id: UUID
     project_id: UUID
     role: RoleEnum
-    created_at = datetime.now(timezone.utc)
-    username: Optional[str] = ""
+    created_at = datetime.now(UTC)
+    username: str | None = ""

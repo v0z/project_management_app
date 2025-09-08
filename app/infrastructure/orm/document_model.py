@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, func
@@ -30,7 +30,7 @@ class DocumentORM(Base):
     storage_backend: Mapped[str] = mapped_column(String(10), nullable=False, default="local")
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), server_default=func.now(), default=datetime.now(UTC), nullable=False
     )
 
     updated_at: Mapped[datetime] = mapped_column(
