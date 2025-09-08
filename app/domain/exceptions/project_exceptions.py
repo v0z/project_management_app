@@ -13,7 +13,7 @@ class ProjectPermissionError(Exception):
     """Raised when a Project does not belong to user."""
 
     def __init__(self):
-        super().__init__("You do not have permission to modify this project")
+        super().__init__("User do not have permission to view or modify this project")
 
 
 class ProjectUpdateError(Exception):

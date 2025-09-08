@@ -27,7 +27,7 @@ class ProjectResponse(BaseModel):
     description: str = None
     owner: UUID
     created_at: datetime
-    documents: list[DocumentSchema] = []
+    # documents: list[DocumentSchema] = []
 
     @field_serializer("created_at")
     def serialize_created_at(self, value: datetime) -> str:
@@ -47,3 +47,15 @@ class ProjectCreateRequest(BaseModel):
 class ProjectUpdateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
+
+
+class UserProjectRoleSchema(BaseModel):
+    role: str
+    username: str
+    user_id: UUID
+    project_id: UUID
+
+
+class ProjectFullDetails(ProjectResponse):
+    documents: list[DocumentSchema] = []
+    participants: list[UserProjectRoleSchema]

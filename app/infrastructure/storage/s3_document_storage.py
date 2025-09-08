@@ -15,12 +15,16 @@ from app.domain.storage.utils import filename_normalizer
 class S3DocumentStorage(DocumentStorage):
     """AWS S3 storage implementation"""
 
-    #TODO Add custom exceptions
+    # TODO Add custom exceptions
 
     def __init__(self):
         self.bucket_name: str = settings.aws_s3_bucket_name
-        self.client: S3Client = boto3.client(
+        s3 =  boto3.client(
             "s3", aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
+        )
+        region = s3.meta.region_name
+        self.client: S3Client = boto3.client(
+            "s3", aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key, region_name=region
         )
         # Ensure bucket exists at initialization if not will call create bucket method
         self._ensure_bucket_exists()
@@ -39,6 +43,13 @@ class S3DocumentStorage(DocumentStorage):
                 )
             else:
                 self.client.create_bucket(Bucket=self.bucket_name)
+
+            # TODO: Fix the autocreation of bucket (Sandbox Has Permissions issue. Test on my own account)
+
+            # #  Wait until bucket is actually created
+            # waiter = self.client.get_waiter("bucket_exists")
+            # waiter.wait(Bucket=self.bucket_name)
+
         except ClientError as e:
             logger.error(f"Couldn't create bucket named {self.bucket_name}")
             raise e
@@ -92,7 +103,7 @@ class S3DocumentStorage(DocumentStorage):
         return url
 
     async def download(self, storage_key: str):
-        """ Downloads a file-like object from S3 and returns it to be used in a StreamingResponse"""
+        """Downloads a file-like object from S3 and returns it to be used in a StreamingResponse"""
         s3_object = await asyncio.to_thread(self.client.get_object, Bucket=self.bucket_name, Key=storage_key)
         return s3_object
 

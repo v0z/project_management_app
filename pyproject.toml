@@ -6,7 +6,7 @@ authors = [
     {name = "art0o",email = "12069431+v0z@users.noreply.github.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard] (>=0.116.1,<0.117.0)",
     "passlib (>=1.7.4,<2.0.0)",
@@ -38,6 +38,8 @@ mypy = "^1.17.1"
 httpx = "^0.28.1"
 boto3-stubs = "^1.40.17"
 mypy-boto3-s3 = "^1.40.0"
+moto = "^5.1.11"
+pytest-asyncio = "^1.1.0"
 
 [tool.poetry]
 name = "fastapi-poetry-crud"
@@ -54,7 +56,9 @@ indent-style = "space"
 line-ending = "auto"
 skip-magic-trailing-comma = true
 docstring-code-format = true
-
+exclude = [
+    "infrastructure/orm",
+]
 
 [tool.ruff.lint]
 # Select rule sets (common, safe, PEP8-focused)

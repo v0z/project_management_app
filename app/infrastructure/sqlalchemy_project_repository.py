@@ -9,8 +9,9 @@ from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
 from app.domain.enities.document import Document
 from app.domain.enities.project import Project as DomainProject
+from app.domain.enities.user_project_role import UserProjectRole
 from app.domain.repositories.project_repository import ProjectRepository
-from app.infrastructure.orm import ProjectORM
+from app.infrastructure.orm import ProjectORM, UserProjectRoleORM
 
 
 class SQLAlchemyProjectRepository(ProjectRepository):
@@ -36,6 +37,17 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             for doc in orm.documents
         ]
 
+        participants = [
+            UserProjectRole(
+                user_id=member.user_id,
+                project_id=member.project_id,
+                role=member.role,
+                username=member.user.username,
+                # username present only in domain model, no username in orm. Just for representational convenience.
+            )
+            for member in orm.participants
+        ]
+
         # add the document list to the project
         return DomainProject(
             id=cast(uuid.UUID, orm.id),
@@ -44,6 +56,7 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             owner=cast(uuid.UUID, orm.owner_id),
             created_at=orm.created_at,
             documents=documents,
+            participants=participants,
         )
 
     @staticmethod
@@ -60,13 +73,16 @@ class SQLAlchemyProjectRepository(ProjectRepository):
     def list_by_user(self, user_id: UUID) -> list[DomainProject]:
         """List all projects for a given user ID"""
         try:
+            # filter by the participants to include all participants, not only the project owner
             orm_projects = (
                 self.db.query(ProjectORM)
-                .options(joinedload(ProjectORM.documents))
-                .filter(ProjectORM.owner_id == user_id)
+                .filter(ProjectORM.participants.any(UserProjectRoleORM.user_id == user_id))
                 .all()
             )
+
+            # converts an orm object with the list of attached documents into domain objects
             return [self._to_domain_entity(orm) for orm in orm_projects]
+
         except SQLAlchemyError as e:
             raise DatabaseError(str(e)) from e
 
@@ -74,6 +90,13 @@ class SQLAlchemyProjectRepository(ProjectRepository):
         """Get a project by its ID"""
         try:
             orm = self.db.get(entity=ProjectORM, ident=project_id)
+            # orm = (self.db.query(ProjectORM)
+            #        .filter(ProjectORM.id == project_id,
+            #                ProjectORM.participants.any(UserProjectRoleORM.user_id == user_id))
+            #        .first()
+            # )
+            # project = self.db.query(ProjectORM).filter(ProjectORM.id == project_id).first()
+
             if orm is None:
                 # I do not throw NotFound exception here but in service instead
                 return None

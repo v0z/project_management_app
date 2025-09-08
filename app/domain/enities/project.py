@@ -3,6 +3,8 @@ from datetime import datetime
 from uuid import UUID
 
 from app.domain.enities.document import Document
+from app.domain.enities.user import User
+from app.domain.enities.user_project_role import UserProjectRole
 from app.domain.exceptions.domain_exceptions import DomainValidationError
 
 
@@ -19,6 +21,8 @@ class Project:
     owner: UUID
     created_at: datetime
     documents: list[Document] = field(default_factory=list)
+    participants: list[UserProjectRole] = field(default_factory=list)
+    # participants: list[User] = field(default_factory=list)
 
     def __post_init__(self):
         # validate after dataclass initializes fields
