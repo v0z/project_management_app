@@ -72,6 +72,13 @@ Resources:
           ToPort: !Ref ContainerPort
           CidrIp: 0.0.0.0/0
 
+  ### CloudWatch Log Group ###
+  FastApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/fastapi
+      RetentionInDays: 3
+
   ### ECS Cluster ###
   FastApiCluster:
     Type: AWS::ECS::Cluster
@@ -91,6 +98,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # allows ECS Exec
 
   ### ECS Task Definition ###
   FastApiTaskDefinition:
@@ -107,6 +115,13 @@ Resources:
           Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
           PortMappings:
             - ContainerPort: !Ref ContainerPort
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref FastApiLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: fastapi
+
 
   ### ECS Service ###
   FastApiService:
@@ -116,6 +131,7 @@ Resources:
       TaskDefinition: !Ref FastApiTaskDefinition
       DesiredCount: 1
       LaunchType: FARGATE
+      EnableExecuteCommand: true
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -131,3 +147,6 @@ Outputs:
   ECSService:
     Value: !Ref FastApiService
     Description: ECS Service Name
+  ECSLogGroup:
+    Value: !Ref FastApiLogGroup
+    Description: CloudWatch Logs Group
