@@ -263,9 +263,15 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !If [CreateSubnetCondition, !Ref PublicSubnet, !Ref SubnetId]
+            !If
+              - CreateSubnetCondition
+              - [ !Ref PublicSubnet ]
+              - [ !Ref SubnetId ]
           SecurityGroups:
-            - !If [CreateSGCondition, !Ref ECSSecurityGroup, !Ref ECSSecurityGroupId]
+            !If
+              - CreateSGCondition
+              - [ !Ref ECSSecurityGroup ]
+              - [ !Ref ECSSecurityGroupId ]
 
 Outputs:
   ECSCluster:
@@ -274,3 +280,4 @@ Outputs:
   ECSService:
     Value: !Ref FastApiService
     Description: ECS Service Name
+
