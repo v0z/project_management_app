@@ -150,8 +150,10 @@ jobs:
 
       - name: Deploy CloudFormation stack
         run: |
+          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
+          echo "Using template at $TEMPLATE_PATH"
           aws cloudformation deploy \
-            --template-file infra/ecs-dockerhub.yml \
+            --template-file "$TEMPLATE_PATH" \
             --stack-name fastapi-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
