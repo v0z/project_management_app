@@ -21,6 +21,7 @@ Resources:
 #      Properties:
 #        AWSServiceName: ecs.amazonaws.com
 
+
   ### VPC ###
   FastApiVPC:
     Type: AWS::EC2::VPC
@@ -98,7 +99,6 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-      RoleName: fastapi-task-execution-role
 
   ### ECS Task Definition ###
   FastApiTaskDefinition:
