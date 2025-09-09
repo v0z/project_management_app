@@ -148,6 +148,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
+      - name: List files for debugging
+        run: ls -la ${GITHUB_WORKSPACE}/infra
+
       - name: Deploy CloudFormation stack
         run: |
           TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
