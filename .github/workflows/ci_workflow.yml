@@ -173,6 +173,9 @@ jobs:
               DockerHubImage=fastapi_poetry_crud \
               ContainerPort=80
 
+      - name: Describe Stack Events on failure
+        run: aws cloudformation describe-stack-events --stack-name fastapi-stack
+
       - name: Force ECS Service update
         run: |
           CLUSTER_NAME=$(aws cloudformation describe-stacks \
