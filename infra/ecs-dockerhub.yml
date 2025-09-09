@@ -366,7 +366,7 @@ Resources:
       ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: fastapi
-          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:${DockerImageTag}"
+          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
           PortMappings:
             - ContainerPort: !Ref ContainerPort
               HostPort: !Ref ContainerPort
