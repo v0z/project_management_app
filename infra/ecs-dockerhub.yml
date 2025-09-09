@@ -14,14 +14,6 @@ Parameters:
     Description: Port exposed by the container
 
 Resources:
-#
-#  Resources:
-#    ECSServiceLinkedRole:
-#      Type: AWS::IAM::ServiceLinkedRole
-#      Properties:
-#        AWSServiceName: ecs.amazonaws.com
-
-
   ### VPC ###
   FastApiVPC:
     Type: AWS::EC2::VPC
@@ -139,5 +131,3 @@ Outputs:
   ECSService:
     Value: !Ref FastApiService
     Description: ECS Service Name
-
-
