@@ -152,7 +152,7 @@
 #    Description: CloudWatch Logs Group
 
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Minimal ECS Fargate deployment of FastAPI Docker image using existing resources, public IP
+Description: Minimal ECS Fargate deployment of FastAPI Docker image with create-or-reuse VPC/subnet/security group
 
 Parameters:
   DockerHubUsername:
@@ -168,28 +168,66 @@ Parameters:
     Type: Number
     Default: 1
   VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: Existing VPC ID
+    Type: String
+    Default: ""
+    Description: Optional existing VPC ID. Leave empty to create a new VPC.
   SubnetId:
-    Type: AWS::EC2::Subnet::Id
-    Description: Existing public subnet ID
+    Type: String
+    Default: ""
+    Description: Optional existing public subnet ID. Leave empty to create a new subnet.
   ECSSecurityGroupId:
-    Type: AWS::EC2::SecurityGroup::Id
-    Description: Existing ECS security group
+    Type: String
+    Default: ""
+    Description: Optional existing ECS security group ID. Leave empty to create a new SG.
+
+Conditions:
+  CreateVpcCondition: !Equals [ !Ref VpcId, "" ]
+  CreateSubnetCondition: !Equals [ !Ref SubnetId, "" ]
+  CreateSGCondition: !Equals [ !Ref ECSSecurityGroupId, "" ]
 
 Resources:
-  # CloudWatch Log Group
+  ### VPC ###
+  FastApiVPC:
+    Type: AWS::EC2::VPC
+    Condition: CreateVpcCondition
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: fastapi-vpc
+
+  ### Subnet ###
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Condition: CreateSubnetCondition
+    Properties:
+      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+
+  ### ECS Security Group ###
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateSGCondition
+    Properties:
+      GroupDescription: Allow traffic to ECS
+      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+
+  ### CloudWatch Logs ###
   FastApiLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /ecs/fastapi
       RetentionInDays: 7
 
-  # ECS Cluster
+  ### ECS Cluster ###
   FastApiCluster:
     Type: AWS::ECS::Cluster
 
-  # ECS Task Execution Role
+  ### ECS Task Execution Role ###
   FastApiTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -203,7 +241,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
-  # ECS Task Definition
+  ### ECS Task Definition ###
   FastApiTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -225,7 +263,7 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: fastapi
 
-  # ECS Service
+  ### ECS Service ###
   FastApiService:
     Type: AWS::ECS::Service
     Properties:
@@ -238,9 +276,9 @@ Resources:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref SubnetId
+            - !If [CreateSubnetCondition, !Ref PublicSubnet, !Ref SubnetId]
           SecurityGroups:
-            - !Ref ECSSecurityGroupId
+            - !If [CreateSGCondition, !Ref ECSSecurityGroup, !Ref ECSSecurityGroupId]
 
 Outputs:
   ECSCluster:

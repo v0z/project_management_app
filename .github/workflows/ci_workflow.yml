@@ -181,7 +181,12 @@ jobs:
             --parameter-overrides \
               DockerHubUsername=${{ secrets.DOCKERHUB_USERNAME }} \
               DockerHubImage=fastapi_poetry_crud \
-              ContainerPort=80
+              ContainerPort=8000 \
+              DesiredCount=1 \
+              VpcId=vpc-0abcd1234efgh5678 \
+              SubnetId=subnet-0abcd1234efgh5678 \
+              ECSSecurityGroupId=sg-0abcd1234efgh5678
+
 
       - name: Describe Stack Events on failure
         run: aws cloudformation describe-stack-events --stack-name fastapi-stack
