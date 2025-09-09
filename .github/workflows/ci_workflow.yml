@@ -163,6 +163,7 @@ jobs:
           echo "Validating CloudFormation template..."
           aws cloudformation validate-template \
             --template-body file://${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml
+          
 
       - name: Deploy CloudFormation stack
         run: |
