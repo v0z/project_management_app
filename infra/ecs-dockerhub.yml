@@ -1,20 +1,196 @@
+#AWSTemplateFormatVersion: '2010-09-09'
+#Description: ECS Fargate deployment of Docker Hub image with auto-created VPC and security group
+#
+#Parameters:
+#  DockerHubUsername:
+#    Type: String
+#    Description: Docker Hub username
+#  DockerHubImage:
+#    Type: String
+#    Description: Docker Hub image name
+#  ContainerPort:
+#    Type: Number
+#    Default: 80
+#    Description: Port exposed by the container
+#
+#Resources:
+#  ### VPC ###
+#  FastApiVPC:
+#    Type: AWS::EC2::VPC
+#    Properties:
+#      CidrBlock: 10.0.0.0/16
+#      EnableDnsSupport: true
+#      EnableDnsHostnames: true
+#      Tags:
+#        - Key: Name
+#          Value: fastapi-vpc
+#
+#  InternetGateway:
+#    Type: AWS::EC2::InternetGateway
+#
+#  AttachGateway:
+#    Type: AWS::EC2::VPCGatewayAttachment
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#      InternetGatewayId: !Ref InternetGateway
+#
+#  PublicSubnet:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#      CidrBlock: 10.0.1.0/24
+#      MapPublicIpOnLaunch: true
+#
+#  PublicRouteTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#
+#  PublicRoute:
+#    Type: AWS::EC2::Route
+#    DependsOn: AttachGateway
+#    Properties:
+#      RouteTableId: !Ref PublicRouteTable
+#      DestinationCidrBlock: 0.0.0.0/0
+#      GatewayId: !Ref InternetGateway
+#
+#  PublicSubnetRouteTableAssociation:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet
+#      RouteTableId: !Ref PublicRouteTable
+#
+#  ### Security Group ###
+#  ECSSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Allow HTTP access
+#      VpcId: !Ref FastApiVPC
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: !Ref ContainerPort
+#          ToPort: !Ref ContainerPort
+#          CidrIp: 0.0.0.0/0
+#
+#  ### CloudWatch Log Group ###
+#  FastApiLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: /ecs/fastapi
+#      RetentionInDays: 3
+#
+#  ### ECS Cluster ###
+#  FastApiCluster:
+#    Type: AWS::ECS::Cluster
+#    Properties:
+#      ClusterName: fastapi-cluster
+#
+#  ### ECS Task Execution Role ###
+#  FastApiTaskExecutionRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+#        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # allows ECS Exec
+#
+#  ### ECS Task Definition ###
+#  FastApiTaskDefinition:
+#    Type: AWS::ECS::TaskDefinition
+#    Properties:
+#      Family: fastapi-task
+#      RequiresCompatibilities: [FARGATE]
+#      Cpu: "256"
+#      Memory: "512"
+#      NetworkMode: awsvpc
+#      ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
+#      ContainerDefinitions:
+#        - Name: fastapi
+#          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
+#          PortMappings:
+#            - ContainerPort: !Ref ContainerPort
+#          LogConfiguration:
+#            LogDriver: awslogs
+#            Options:
+#              awslogs-group: !Ref FastApiLogGroup
+#              awslogs-region: !Ref AWS::Region
+#              awslogs-stream-prefix: fastapi
+#
+#
+#  ### ECS Service ###
+#  FastApiService:
+#    Type: AWS::ECS::Service
+#    Properties:
+#      Cluster: !Ref FastApiCluster
+#      TaskDefinition: !Ref FastApiTaskDefinition
+#      DesiredCount: 1
+#      LaunchType: FARGATE
+#      EnableExecuteCommand: true
+#      NetworkConfiguration:
+#        AwsvpcConfiguration:
+#          AssignPublicIp: ENABLED
+#          Subnets:
+#            - !Ref PublicSubnet
+#          SecurityGroups:
+#            - !Ref ECSSecurityGroup
+#
+#Outputs:
+#  ECSCluster:
+#    Value: !Ref FastApiCluster
+#    Description: ECS Cluster Name
+#  ECSService:
+#    Value: !Ref FastApiService
+#    Description: ECS Service Name
+#  ECSLogGroup:
+#    Value: !Ref FastApiLogGroup
+#    Description: CloudWatch Logs Group
 AWSTemplateFormatVersion: '2010-09-09'
-Description: ECS Fargate deployment of Docker Hub image with auto-created VPC and security group
+Description: Optimized ECS Fargate deployment with FastAPI Docker Hub image, minimal VPC, ALB mapping port 80 to container port 8000
 
 Parameters:
   DockerHubUsername:
     Type: String
-    Description: Docker Hub username
+    Description: Docker Hub username (e.g., yourusername)
   DockerHubImage:
     Type: String
-    Description: Docker Hub image name
+    Description: Docker Hub image name (e.g., fastapi-app)
+  DockerImageTag:
+    Type: String
+    Default: "latest"
+    Description: Docker image tag
   ContainerPort:
     Type: Number
-    Default: 80
-    Description: Port exposed by the container
+    Default: 8000
+    Description: Internal port exposed by the FastAPI container (default 8000)
+  TaskCpu:
+    Type: String
+    Default: "256"
+    AllowedValues: ["256", "512", "1024"]
+    Description: CPU units for Fargate task
+  TaskMemory:
+    Type: String
+    Default: "512"
+    AllowedValues: ["512", "1024", "2048"]
+    Description: Memory (MiB) for Fargate task
+  DesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Number of tasks to run
+  LogRetentionDays:
+    Type: Number
+    Default: 7
+    AllowedValues: [1, 3, 5, 7, 14, 30]
+    Description: CloudWatch log retention period in days
 
 Resources:
-  ### VPC ###
+  # VPC
   FastApiVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -24,9 +200,16 @@ Resources:
       Tags:
         - Key: Name
           Value: fastapi-vpc
+        - Key: Environment
+          Value: Production
+    DeletionPolicy: Retain
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: fastapi-igw
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -34,17 +217,35 @@ Resources:
       VpcId: !Ref FastApiVPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnet:
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref FastApiVPC
       CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: fastapi-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FastApiVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: fastapi-subnet-2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref FastApiVPC
+      Tags:
+        - Key: Name
+          Value: fastapi-rt
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -54,38 +255,68 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
-  PublicSubnetRouteTableAssociation:
+  PublicSubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnet1
       RouteTableId: !Ref PublicRouteTable
 
-  ### Security Group ###
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Groups
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP access for ALB
+      VpcId: !Ref FastApiVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: fastapi-alb-sg
+
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP access
+      GroupDescription: Allow traffic from ALB to ECS
       VpcId: !Ref FastApiVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: !Ref ContainerPort
           ToPort: !Ref ContainerPort
-          CidrIp: 0.0.0.0/0
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: fastapi-ecs-sg
 
-  ### CloudWatch Log Group ###
+  # CloudWatch Log Group
   FastApiLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /ecs/fastapi
-      RetentionInDays: 3
+      RetentionInDays: !Ref LogRetentionDays
+      Tags:
+        - Key: Name
+          Value: fastapi-logs
+    DeletionPolicy: Retain
 
-  ### ECS Cluster ###
+  # ECS Cluster
   FastApiCluster:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: fastapi-cluster
+      Tags:
+        - Key: Name
+          Value: fastapi-cluster
 
-  ### ECS Task Execution Role ###
+  # ECS Task Execution Role
   FastApiTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -98,47 +329,125 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # allows ECS Exec
+      Tags:
+        - Key: Name
+          Value: fastapi-task-exec-role
 
-  ### ECS Task Definition ###
+  FastApiECSExecPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref FastApiTaskExecutionRole
+      PolicyName: ECSExecPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ssm:StartSession
+              - ssm:GetConnectionStatus
+              - ssm:DescribeSessions
+              - ssm:TerminateSession
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ecs:ExecuteCommand
+            Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task/*"
+
+  # ECS Task Definition
   FastApiTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: fastapi-task
       RequiresCompatibilities: [FARGATE]
-      Cpu: "256"
-      Memory: "512"
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: fastapi
-          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
+          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:${DockerImageTag}"
           PortMappings:
             - ContainerPort: !Ref ContainerPort
+              HostPort: !Ref ContainerPort
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref FastApiLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: fastapi
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:${ContainerPort}/ || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+      Tags:
+        - Key: Name
+          Value: fastapi-task
 
+  # Application Load Balancer
+  FastApiLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Type: application
+      Tags:
+        - Key: Name
+          Value: fastapi-alb
 
-  ### ECS Service ###
+  FastApiTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref FastApiVPC
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckPath: /
+      Tags:
+        - Key: Name
+          Value: fastapi-tg
+
+  FastApiListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref FastApiLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FastApiTargetGroup
+
+  # ECS Service
   FastApiService:
     Type: AWS::ECS::Service
     Properties:
       Cluster: !Ref FastApiCluster
       TaskDefinition: !Ref FastApiTaskDefinition
-      DesiredCount: 1
+      DesiredCount: !Ref DesiredCount
       LaunchType: FARGATE
       EnableExecuteCommand: true
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref PublicSubnet
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
           SecurityGroups:
             - !Ref ECSSecurityGroup
+      LoadBalancers:
+        - ContainerName: fastapi
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref FastApiTargetGroup
+      Tags:
+        - Key: Name
+          Value: fastapi-service
 
 Outputs:
   ECSCluster:
@@ -150,3 +459,6 @@ Outputs:
   ECSLogGroup:
     Value: !Ref FastApiLogGroup
     Description: CloudWatch Logs Group
+  LoadBalancerDNS:
+    Value: !GetAtt FastApiLoadBalancer.DNSName
+    Description: DNS name of the Application Load Balancer
