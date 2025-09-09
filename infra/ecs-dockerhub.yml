@@ -14,12 +14,12 @@ Parameters:
     Description: Port exposed by the container
 
 Resources:
-
-  Resources:
-    ECSServiceLinkedRole:
-      Type: AWS::IAM::ServiceLinkedRole
-      Properties:
-        AWSServiceName: ecs.amazonaws.com
+#
+#  Resources:
+#    ECSServiceLinkedRole:
+#      Type: AWS::IAM::ServiceLinkedRole
+#      Properties:
+#        AWSServiceName: ecs.amazonaws.com
 
   ### VPC ###
   FastApiVPC:
