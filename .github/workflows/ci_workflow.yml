@@ -148,24 +148,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - uses: actions/checkout@v4 # This is the missing piece
-        with:
-          path: './' # Checks out the repo to the root of the workspace
-      - name: List files for debugging
-        run: ls -la ${GITHUB_WORKSPACE}/infra
+#      - uses: actions/checkout@v4 # This is the missing piece
+#        with:
+#          path: './' # Checks out the repo to the root of the workspace
+#      - name: List files for debugging
+#        run: ls -la ${GITHUB_WORKSPACE}/infra
+#      - name: Deploy CloudFormation stack
+#        run: |
+#          # Now the path is correct
+#          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
+#          echo "Using template at $TEMPLATE_PATH"
+      - name: Validate CloudFormation template
+        run: |
+          echo "Validating CloudFormation template..."
+          aws cloudformation validate-template \
+            --template-body file://infra/ecs-dockerhub.yml
+
       - name: Deploy CloudFormation stack
         run: |
-          # Now the path is correct
-          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
-          echo "Using template at $TEMPLATE_PATH"
-
-
-      - name: Deploy CloudFormation stack
-        run: |
-          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
-          echo "Using template at $TEMPLATE_PATH"
+          echo "Deploying CloudFormation stack..."
           aws cloudformation deploy \
-            --template-file "$TEMPLATE_PATH" \
+            --template-file infra/ecs-dockerhub.yml \
             --stack-name fastapi-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
