@@ -162,13 +162,14 @@ jobs:
         run: |
           echo "Validating CloudFormation template..."
           aws cloudformation validate-template \
-            --template-body file://infra/ecs-dockerhub.yml
+            --template-body file://${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml
 
       - name: Deploy CloudFormation stack
         run: |
+          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
           echo "Deploying CloudFormation stack..."
-          aws cloudformation deploy \
-            --template-file infra/ecs-dockerhub.yml \
+           aws cloudformation deploy \
+            --template-file "$TEMPLATE_PATH" \
             --stack-name fastapi-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
