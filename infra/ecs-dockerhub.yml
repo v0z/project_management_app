@@ -15,6 +15,12 @@ Parameters:
 
 Resources:
 
+  Resources:
+    ECSServiceLinkedRole:
+      Type: AWS::IAM::ServiceLinkedRole
+      Properties:
+        AWSServiceName: ecs.amazonaws.com
+
   ### VPC ###
   FastApiVPC:
     Type: AWS::EC2::VPC
