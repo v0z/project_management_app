@@ -39,7 +39,7 @@ Parameters:
     Description: "Endpoint of an existing RDS instance. Leave empty to create a new one."
   DBInstanceIdentifier:
     Type: String
-    Default: "fastapidb"
+    Default: "mydb2"
     Description: "Identifier for the new RDS instance if creating one."
   TokenSecretKey:
     Type: String
@@ -238,13 +238,13 @@ Resources:
           if [ -z "${RdsEndpoint}" ]; then
             echo "Waiting for RDS instance to become available..."
             aws rds wait db-instance-available \
-                --db-instance-identifier ${DBInstanceIdentifier} \
-                --region ${AWS::Region}
+                --db-instance-identifier mydb2 \
+                --region 'eu-north-1'
             RDS_ENDPOINT=$(aws rds describe-db-instances \
-              --db-instance-identifier ${DBInstanceIdentifier} \
+              --db-instance-identifier mydb2 \
               --query "DBInstances[0].Endpoint.Address" \
               --output text \
-              --region ${AWS::Region})
+              --region 'eu-north-1')
           else
             RDS_ENDPOINT=${RdsEndpoint}
           fi

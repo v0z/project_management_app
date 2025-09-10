@@ -180,9 +180,9 @@ jobs:
       - name: Get Stack Outputs
         id: get_output
         run: |
-          PUBLIC_IP=$(aws cloudformation describe-stacks \
-            --stack-name fastapi-stack \
-            --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
-            --output text)
-          echo "::set-output name=instance-ip::$PUBLIC_IP"
-          echo "Public IP: $PUBLIC_IP"
+           PUBLIC_IP=$(aws cloudformation describe-stacks \
+             --stack-name fastapi-stack \
+             --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
+             --output text)
+           echo "instance-ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+           echo "Public IP: $PUBLIC_IP"
