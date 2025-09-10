@@ -60,8 +60,22 @@ Parameters:
     Description: "S3 key for Lambda deployment package zip file"
     Default: "lambda_function.zip"
 
+  NewInputBucketName:
+    Type: String
+    Default: ""
+    Description: "The name for a NEW input S3 bucket. Must be globally unique. Leave blank to use an existing bucket."
+  NewOutputBucketName:
+    Type: String
+    Description: "The name for a NEW output S3 bucket. Must be globally unique."
+    Default: "resized-03aac4"
+  ExistingInputBucketName:
+    Type: String
+    Default: "documents-03aac4"
+    Description: "The name of an EXISTING S3 bucket to use for the Lambda trigger. This will NOT be created by CloudFormation. Leave blank to create a new bucket."
+
 Conditions:
   CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]
+  CreateInputBucket: !Equals [ !Ref ExistingInputBucketName, "" ]
 
 Resources:
 
@@ -230,8 +244,9 @@ Resources:
   # Input bucket (triggers Lambda)
   InputBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateInputBucket
     Properties:
-      BucketName: !Sub "documents-03aac4"
+      BucketName: !Ref NewInputBucketName
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: "s3:ObjectCreated:*"
@@ -241,7 +256,7 @@ Resources:
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "resized-03aac4"
+      BucketName: !Ref NewOutputBucketName
 
   # IAM Role for Lambda
   MyLambdaExecutionRole:
@@ -279,7 +294,7 @@ Resources:
       MemorySize: 256
       Environment:
         Variables:
-          OUTPUT_BUCKET: !Ref OutputBucket
+          OUTPUT_BUCKET: !Ref NewOutputBucketName
       Code:
         S3Bucket: !Ref LambdaCodeBucket
         S3Key: !Ref LambdaCodeKey
@@ -293,7 +308,10 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !GetAtt MyLambdaFunction.Arn
       Principal: 's3.amazonaws.com'
-      SourceArn: !GetAtt InputBucket.Arn
+      SourceArn: !If
+        - CreateInputBucket
+        - !GetAtt InputBucket.Arn
+        - !Sub "arn:aws:s3:::${ExistingInputBucketName}"
 
 
   ##################################
@@ -381,7 +399,10 @@ Outputs:
 
   OutputBucketName:
     Description: "Processed results will be saved here"
-    Value: !Ref OutputBucket
+    Value: !If
+      - CreateInputBucket
+      - !Ref InputBucket
+      - !Ref ExistingInputBucketName
 
   LambdaFunctionName:
     Description: "Lambda function name"
