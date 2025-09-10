@@ -50,6 +50,16 @@ Parameters:
     Default: "s3"
     Description: "The storage backend for the services."
 
+  LambdaCodeBucket:
+    Type: String
+    Description: "S3 bucket containing Lambda deployment package"
+    Default: "lambda-03aac4"
+
+  LambdaCodeKey:
+    Type: String
+    Description: "S3 key for Lambda deployment package zip file"
+    Default: "lambda_function.zip"
+
 Conditions:
   CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]
 
@@ -213,6 +223,72 @@ Resources:
       Roles:
         - !Ref EC2InstanceRole
 
+  # Input bucket (triggers Lambda)
+  InputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "documents-03aac4"
+
+  # Output bucket (where Lambda can write results)
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "resized-03aac4"
+
+  # IAM Role for Lambda
+  MyLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+        - PolicyName: OutputBucketWriteAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "${OutputBucket.Arn}/*"
+
+  # Lambda function
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${StackName}-s3-trigger-lambda"
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          OUTPUT_BUCKET: !Ref OutputBucket
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeKey
+      Layers:
+        - arn:aws:lambda:eu-north-1:770693421928:layer:Klayers-p312-pillow:2
+
+  # Bucket event notification
+  InputBucketNotification:
+    Type: AWS::S3::BucketNotification
+    Properties:
+      Bucket: !Ref InputBucket
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt MyLambdaFunction.Arn
+
+
   ##################################
   # EC2 Instance
   ##################################
@@ -292,6 +368,18 @@ Resources:
           fi
 
 Outputs:
+  InputBucketName:
+    Description: "Upload files here to trigger Lambda"
+    Value: !Ref InputBucket
+
+  OutputBucketName:
+    Description: "Processed results will be saved here"
+    Value: !Ref OutputBucket
+
+  LambdaFunctionName:
+    Description: "Lambda function name"
+    Value: !Ref MyLambdaFunction
+
   InstancePublicIP:
     Description: Public IP of the EC2 instance
     Value: !GetAtt AppEC2Instance.PublicIp
