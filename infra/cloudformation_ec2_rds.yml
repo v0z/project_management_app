@@ -401,7 +401,7 @@ Outputs:
     Description: "Processed results will be saved here"
     Value: !If
       - CreateInputBucket
-      - !Ref InputBucket
+      - !Ref NewInputBucketName
       - !Ref ExistingInputBucketName
 
   LambdaFunctionName:
