@@ -180,40 +180,40 @@ jobs:
               DBName=${{ secrets.DBNAME }} \
               TokenSecretKey=${{ secrets.TOKEN_SECRET_KEY }}
 
-  deploy-to-ec2:
-    runs-on: ubuntu-latest
-    needs: build-and-push # This job will run only after the 'build-and-push' job is complete
-    steps:
-      - name: Deploy to EC2 instance via SSH
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "Stopping existing container..."
-            docker stop mycontainer || true
-            docker rm mycontainer || true
-
-#            echo "Logging into Docker Hub..."
-#            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-
-            echo "Pulling new image..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
-          
-            echo "Starting new container..."
-            RDS_ENDPOINT=$(aws rds describe-db-instances \
-            --db-instance-identifier mydb2 \
-            --query "DBInstances[0].Endpoint.Address" \
-            --output text \
-            --region 'eu-north-1')
-            docker run -d \
-              -p 80:8000 \
-              -e DB_HOST=$RDS_ENDPOINT  \
-              -e DB_PORT=5432 \
-              -e DB_USERNAME=${{ secrets.DBUSERNAME }} \
-              -e DB_PASSWORD=${{ secrets.DBPASSWORD }} \
-              -e DB_NAME=${{ secrets.DBNAME }} \
-              -e TOKEN_SECRET_KEY=${{ secrets.TOKEN_SECRET_KEY }} \
-              --name mycontainer \
-              ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
+#  deploy-to-ec2:
+#    runs-on: ubuntu-latest
+#    needs: build-and-push # This job will run only after the 'build-and-push' job is complete
+#    steps:
+#      - name: Deploy to EC2 instance via SSH
+#        uses: appleboy/ssh-action@v0.1.10
+#        with:
+#          host: ${{ secrets.EC2_HOST }}
+#          username: ${{ secrets.EC2_USERNAME }}
+#          key: ${{ secrets.EC2_SSH_KEY }}
+#          script: |
+#            echo "Stopping existing container..."
+#            docker stop mycontainer || true
+#            docker rm mycontainer || true
+#
+##            echo "Logging into Docker Hub..."
+##            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#            echo "Pulling new image..."
+#            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
+#
+#            echo "Starting new container..."
+#            RDS_ENDPOINT=$(aws rds describe-db-instances \
+#            --db-instance-identifier mydb2 \
+#            --query "DBInstances[0].Endpoint.Address" \
+#            --output text \
+#            --region 'eu-north-1')
+#            docker run -d \
+#              -p 80:8000 \
+#              -e DB_HOST=$RDS_ENDPOINT  \
+#              -e DB_PORT=5432 \
+#              -e DB_USERNAME=${{ secrets.DBUSERNAME }} \
+#              -e DB_PASSWORD=${{ secrets.DBPASSWORD }} \
+#              -e DB_NAME=${{ secrets.DBNAME }} \
+#              -e TOKEN_SECRET_KEY=${{ secrets.TOKEN_SECRET_KEY }} \
+#              --name mycontainer \
+#              ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
