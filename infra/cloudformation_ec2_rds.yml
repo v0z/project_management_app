@@ -262,7 +262,7 @@ Resources:
           RETRY_COUNT=0
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if docker run -d -p 80:8000 \
+              docker run -d -p 80:8000 \
                   -e DB_HOST=$RDS_ENDPOINT \
                   -e DB_PORT=5432 \
                   -e DB_USERNAME=${DBUsername} \
@@ -271,11 +271,16 @@ Resources:
                   -e TOKEN_SECRET_KEY=${TokenSecretKey} \
                   -e STORAGE_BACKEND=${StorageBackend} \
                   --name mycontainer \
-                  $IMAGE_URL; then
+                  $IMAGE_URL
+          
+              # Check if the container is running
+              if docker ps | grep mycontainer &>/dev/null; then
                   echo "Docker container started successfully."
                   break
               else
-                  echo "Docker run failed. Retrying in 10 seconds..."
+                  echo "Docker run failed. Checking logs for mycontainer..."
+                  docker logs mycontainer
+                  echo "Retrying in 10 seconds..."
                   RETRY_COUNT=$((RETRY_COUNT+1))
                   sleep 10
               fi
