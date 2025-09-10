@@ -39,12 +39,13 @@ class S3DocumentStorage(DocumentStorage):
         """Create an Amazon S3 bucket in the default Region for the account"""
         try:
             # self.client.meta.region_name - defaulting to 'us-east-1 regardless of the actual region
-            if self.region != "us-east-1":
-                self.client.create_bucket(
-                    Bucket=self.bucket_name, CreateBucketConfiguration={"LocationConstraint": self.region}
-                )
-            else:
+            if self.region in [None, 'us-east-1']:
                 self.client.create_bucket(Bucket=self.bucket_name)
+            else:
+                self.client.create_bucket(
+                    Bucket=self.bucket_name,
+                    CreateBucketConfiguration={'LocationConstraint': self.region}
+                )
         except ClientError as e:
             logger.error(f"Couldn't create bucket named {self.bucket_name}")
             raise e
