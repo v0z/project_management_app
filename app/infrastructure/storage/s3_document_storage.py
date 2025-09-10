@@ -20,8 +20,7 @@ class S3DocumentStorage(DocumentStorage):
     def __init__(self):
         self.bucket_name: str = settings.aws_s3_bucket_name
         # Create a session object to get the resolved region
-        self.session = boto3.session.Session()
-        self.region = self.session.region_name
+        self.region: str = settings.aws_region
         self.client: S3Client = boto3.client(
             "s3",
             # aws_access_key_id=settings.aws_access_key_id,

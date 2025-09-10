@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     aws_s3_bucket_name: str = "documents-03aac4"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
+    aws_region: str = "eu-north-1"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
