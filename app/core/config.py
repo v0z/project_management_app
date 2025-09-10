@@ -23,14 +23,14 @@ class Settings(BaseSettings):
     pgadmin_default_email: EmailStr = "fast@api.com"
     pgadmin_default_password: str = ""
 
-    allowed_types: list = []
+    allowed_types: list = ["application/pdf", "image/png", "image/jpeg", "image/bmp"]
     max_file_size: int = 5
 
     # storage type: local or cloud
-    storage_backend: str = ""
+    storage_backend: str = "local"
 
     # aws environment variables
-    aws_s3_bucket_name: str = ""
+    aws_s3_bucket_name: str = "documents-03aac4"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
 
