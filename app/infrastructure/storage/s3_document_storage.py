@@ -27,7 +27,9 @@ class S3DocumentStorage(DocumentStorage):
         )
         region = s3.meta.region_name
         self.client: S3Client = boto3.client(
-            "s3", aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key, region_name=region
+            "s3",
+            # aws_access_key_id=settings.aws_access_key_id,
+            # aws_secret_access_key=settings.aws_secret_access_key, region_name=region
         )
         # Ensure bucket exists at initialization if not will call create bucket method
         self._ensure_bucket_exists()
