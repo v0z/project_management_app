@@ -245,6 +245,10 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref NewInputBucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt MyLambdaFunction.Arn
 
   # Output bucket (where Lambda can write results)
   OutputBucket:
@@ -302,7 +306,26 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !GetAtt MyLambdaFunction.Arn
       Principal: 's3.amazonaws.com'
-      SourceArn: !GetAtt InputBucket.Arn
+
+  BucketNotificationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import boto3, json
+          def handler(event, context):
+              s3 = boto3.client('s3')
+              props = event['ResourceProperties']
+              bucket = props['Bucket']
+              notification = props['NotificationConfiguration']
+              s3.put_bucket_notification_configuration(
+                  Bucket=bucket,
+                  NotificationConfiguration=notification
+              )
+              return { 'Status': 'SUCCESS' }
 
   BucketNotification:
     Type: Custom::S3BucketNotification
