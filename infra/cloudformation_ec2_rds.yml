@@ -243,6 +243,7 @@ Resources:
   # Input bucket (triggers Lambda)
   InputBucket:
     Type: AWS::S3::Bucket
+    DependsOn: S3LambdaPermission
     Properties:
       BucketName: !Ref NewInputBucketName
       NotificationConfiguration:
