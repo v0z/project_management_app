@@ -62,7 +62,7 @@ Parameters:
 
   NewInputBucketName:
     Type: String
-    Default: ""
+    Default: "documents-03aac4"
     Description: "The name for a NEW input S3 bucket. Must be globally unique. Leave blank to use an existing bucket."
   NewOutputBucketName:
     Type: String
@@ -70,7 +70,7 @@ Parameters:
     Default: "resized-03aac4"
   ExistingInputBucketName:
     Type: String
-    Default: "documents-03aac4"
+    Default: ""
     Description: "The name of an EXISTING S3 bucket to use for the Lambda trigger. This will NOT be created by CloudFormation. Leave blank to create a new bucket."
 
 Conditions:
