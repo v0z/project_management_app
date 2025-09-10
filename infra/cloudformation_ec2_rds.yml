@@ -75,7 +75,6 @@ Parameters:
 
 Conditions:
   CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]
-  CreateInputBucket: !Equals [ !Ref ExistingInputBucketName, "" ]
 
 Resources:
 
@@ -244,7 +243,6 @@ Resources:
   # Input bucket (triggers Lambda)
   InputBucket:
     Type: AWS::S3::Bucket
-    Condition: CreateInputBucket
     Properties:
       BucketName: !Ref NewInputBucketName
       NotificationConfiguration:
@@ -308,10 +306,7 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !GetAtt MyLambdaFunction.Arn
       Principal: 's3.amazonaws.com'
-      SourceArn: !If
-        - CreateInputBucket
-        - !GetAtt InputBucket.Arn
-        - !Sub "arn:aws:s3:::${ExistingInputBucketName}"
+      SourceArn: !GetAtt InputBucket.Arn
 
 
   ##################################
@@ -395,10 +390,7 @@ Resources:
 Outputs:
   InputBucketName:
     Description: "Upload files here to trigger Lambda"
-    Value: !If
-      - CreateInputBucket
-      - !Ref NewInputBucketName
-      - !Ref ExistingInputBucketName
+    Value: !Ref NewInputBucketName
 
   OutputBucketName:
     Description: "Processed results will be saved here"
