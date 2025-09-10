@@ -19,18 +19,14 @@ class S3DocumentStorage(DocumentStorage):
 
     def __init__(self):
         self.bucket_name: str = settings.aws_s3_bucket_name
-        s3 =  boto3.client(
-            "s3",
-            # commented out to force to use instance profile credentials automatically.
-            # aws_access_key_id=settings.aws_access_key_id,
-            # aws_secret_access_key=settings.aws_secret_access_key
-        )
-        region = s3.meta.region_name
+        # Create a session object to get the resolved region
+        self.session = boto3.session.Session()
+        self.region = self.session.region_name
         self.client: S3Client = boto3.client(
             "s3",
             # aws_access_key_id=settings.aws_access_key_id,
             # aws_secret_access_key=settings.aws_secret_access_key,
-            region_name=region
+            region_name=self.region
         )
         # Ensure bucket exists at initialization if not will call create bucket method
         self._ensure_bucket_exists()
@@ -42,20 +38,13 @@ class S3DocumentStorage(DocumentStorage):
     def create_bucket(self) -> None:
         """Create an Amazon S3 bucket in the default Region for the account"""
         try:
-            region = self.client.meta.region_name
-            if region != "us-east-1":
+            # self.client.meta.region_name - defaulting to 'us-east-1 regardless of the actual region
+            if self.region != "us-east-1":
                 self.client.create_bucket(
-                    Bucket=self.bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
+                    Bucket=self.bucket_name, CreateBucketConfiguration={"LocationConstraint": self.region}
                 )
             else:
                 self.client.create_bucket(Bucket=self.bucket_name)
-
-            # TODO: Fix the autocreation of bucket (Sandbox Has Permissions issue. Test on my own account)
-
-            # #  Wait until bucket is actually created
-            # waiter = self.client.get_waiter("bucket_exists")
-            # waiter.wait(Bucket=self.bucket_name)
-
         except ClientError as e:
             logger.error(f"Couldn't create bucket named {self.bucket_name}")
             raise e
