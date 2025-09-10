@@ -133,10 +133,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
 
-  deploy-to-ecs:
-    name: Deploy to ECS
+  deploy-to-aws:
+    name: Deploy to AWS
     runs-on: ubuntu-latest
     needs: build-and-push-to-dockerhub
     if: success() && github.ref == 'refs/heads/main'
@@ -148,21 +148,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - name: Create ECS Service-Linked Role
-        run: |
-          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || true
+#      - name: Create ECS Service-Linked Role
+#        run: |
+#          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com || true
 
 
-      - uses: actions/checkout@v4 # This is the missing piece
+      - uses: actions/checkout@v4
         with:
           path: './' # Checks out the repo to the root of the workspace
-#      - name: List files for debugging
-#        run: ls -la ${GITHUB_WORKSPACE}/infra
-#      - name: Deploy CloudFormation stack
-#        run: |
-#          # Now the path is correct
-#          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
-#          echo "Using template at $TEMPLATE_PATH"
       - name: Validate CloudFormation template
         run: |
           echo "Validating CloudFormation template..."
@@ -171,35 +164,56 @@ jobs:
           
 
       - name: Deploy CloudFormation stack
+        timeout-minutes: 15
         run: |
           TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/ecs-dockerhub.yml"
-          echo "Deploying CloudFormation stack..."
            aws cloudformation deploy \
             --template-file "$TEMPLATE_PATH" \
             --stack-name fastapi-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
-              DockerHubUsername=${{ secrets.DOCKERHUB_USERNAME }} \
-              DockerHubImage=fastapi_poetry_crud \
+              DockerImageName=${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud \
+              DockerImageTag=${{ github.sha }} \
               ContainerPort=8000 \
-              DesiredCount=1
+              DBUsername=${{ secrets.DBUSERNAME }} \
+              DBPassword=${{ secrets.DBPASSWORD }} \
+              DBName=${{ secrets.DBNAME }} \
+              TokenSecretKey=${{ secrets.TOKEN_SECRET_KEY }}
 
-      - name: Describe Stack Events on failure
-        run: aws cloudformation describe-stack-events --stack-name fastapi-stack
+  deploy-to-ec2:
+    runs-on: ubuntu-latest
+    needs: build-and-push # This job will run only after the 'build-and-push' job is complete
+    steps:
+      - name: Deploy to EC2 instance via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Stopping existing container..."
+            docker stop mycontainer || true
+            docker rm mycontainer || true
 
-      - name: Force ECS Service update
-        run: |
-          CLUSTER_NAME=$(aws cloudformation describe-stacks \
-            --stack-name fastapi-stack \
-            --query "Stacks[0].Outputs[?OutputKey=='ECSCluster'].OutputValue" \
-            --output text)
-          SERVICE_NAME=$(aws cloudformation describe-stacks \
-            --stack-name fastapi-stack \
-            --query "Stacks[0].Outputs[?OutputKey=='ECSService'].OutputValue" \
-            --output text)
-  
-          echo "Forcing ECS service redeploy..."
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --force-new-deployment
+#            echo "Logging into Docker Hub..."
+#            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+
+            echo "Pulling new image..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}
+          
+            echo "Starting new container..."
+            RDS_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier mydb2 \
+            --query "DBInstances[0].Endpoint.Address" \
+            --output text \
+            --region 'eu-north-1')
+            docker run -d \
+              -p 80:8000 \
+              -e DB_HOST=$RDS_ENDPOINT  \
+              -e DB_PORT=5432 \
+              -e DB_USERNAME=${{ secrets.DBUSERNAME }} \
+              -e DB_PASSWORD=${{ secrets.DBPASSWORD }} \
+              -e DB_NAME=${{ secrets.DBNAME }} \
+              -e TOKEN_SECRET_KEY=${{ secrets.TOKEN_SECRET_KEY }} \
+              --name mycontainer \
+              ${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud:${{ github.sha }}

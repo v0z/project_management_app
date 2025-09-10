@@ -10,7 +10,7 @@
 #    Description: Docker Hub image name
 #  ContainerPort:
 #    Type: Number
-#    Default: 80
+#    Default: 8000
 #    Description: Port exposed by the container
 #
 #Resources:
@@ -72,20 +72,13 @@
 #          ToPort: !Ref ContainerPort
 #          CidrIp: 0.0.0.0/0
 #
-#  ### CloudWatch Log Group ###
-#  FastApiLogGroup:
-#    Type: AWS::Logs::LogGroup
-#    Properties:
-#      LogGroupName: /ecs/fastapi
-#      RetentionInDays: 3
-#
 #  ### ECS Cluster ###
 #  FastApiCluster:
 #    Type: AWS::ECS::Cluster
 #    Properties:
 #      ClusterName: fastapi-cluster
 #
-#  ### ECS Task Execution Role ###
+#  ### ECS Roles ###
 #  FastApiTaskExecutionRole:
 #    Type: AWS::IAM::Role
 #    Properties:
@@ -98,7 +91,19 @@
 #            Action: sts:AssumeRole
 #      ManagedPolicyArns:
 #        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-#        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # allows ECS Exec
+#
+#  FastApiTaskRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore  # ECS Exec support
 #
 #  ### ECS Task Definition ###
 #  FastApiTaskDefinition:
@@ -110,18 +115,12 @@
 #      Memory: "512"
 #      NetworkMode: awsvpc
 #      ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
+#      TaskRoleArn: !GetAtt FastApiTaskRole.Arn
 #      ContainerDefinitions:
 #        - Name: fastapi
 #          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
 #          PortMappings:
 #            - ContainerPort: !Ref ContainerPort
-#          LogConfiguration:
-#            LogDriver: awslogs
-#            Options:
-#              awslogs-group: !Ref FastApiLogGroup
-#              awslogs-region: !Ref AWS::Region
-#              awslogs-stream-prefix: fastapi
-#
 #
 #  ### ECS Service ###
 #  FastApiService:
@@ -147,80 +146,569 @@
 #  ECSService:
 #    Value: !Ref FastApiService
 #    Description: ECS Service Name
-#  ECSLogGroup:
-#    Value: !Ref FastApiLogGroup
-#    Description: CloudWatch Logs Group
+
+###################################### 1
+
+#AWSTemplateFormatVersion: '2010-09-09'
+#Description: Minimal ECS Fargate deployment of FastAPI Docker image with create-or-reuse VPC/subnet/security group
+#
+#Parameters:
+#  DockerHubUsername:
+#    Type: String
+#    Description: Docker Hub username
+#  DockerHubImage:
+#    Type: String
+#    Description: Docker Hub image name
+#  ContainerPort:
+#    Type: Number
+#    Default: 8000
+#  DesiredCount:
+#    Type: Number
+#    Default: 1
+#  VpcId:
+#    Type: String
+#    Default: ""
+#    Description: Optional existing VPC ID. Leave empty to create a new VPC.
+#  SubnetId:
+#    Type: String
+#    Default: ""
+#    Description: Optional existing public subnet ID. Leave empty to create a new subnet.
+#  ECSSecurityGroupId:
+#    Type: String
+#    Default: ""
+#    Description: Optional existing ECS security group ID. Leave empty to create a new SG.
+#
+#Conditions:
+#  CreateVpcCondition: !Equals [ !Ref VpcId, "" ]
+#  CreateSubnetCondition: !Equals [ !Ref SubnetId, "" ]
+#  CreateSGCondition: !Equals [ !Ref ECSSecurityGroupId, "" ]
+#
+#Resources:
+#  ### VPC ###
+#  FastApiVPC:
+#    Type: AWS::EC2::VPC
+#    Condition: CreateVpcCondition
+#    Properties:
+#      CidrBlock: 10.0.0.0/16
+#      EnableDnsSupport: true
+#      EnableDnsHostnames: true
+#      Tags:
+#        - Key: Name
+#          Value: fastapi-vpc
+#
+#  ### Subnet ###
+#  PublicSubnet:
+#    Type: AWS::EC2::Subnet
+#    Condition: CreateSubnetCondition
+#    Properties:
+#      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+#      CidrBlock: 10.0.1.0/24
+#      MapPublicIpOnLaunch: true
+#      AvailabilityZone: !Select [0, !GetAZs ""]
+#
+#  ### ECS Security Group ###
+#  ECSSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Condition: CreateSGCondition
+#    Properties:
+#      GroupDescription: Allow traffic to ECS
+#      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+#
+#  ### ECS Cluster ###
+#  FastApiCluster:
+#    Type: AWS::ECS::Cluster
+#
+#  FastApiTaskRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+#
+#  ### ECS Task Execution Role ###
+#  FastApiTaskExecutionRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+#
+#  ### ECS Task Definition ###
+#  FastApiTaskDefinition:
+#    Type: AWS::ECS::TaskDefinition
+#    Properties:
+#      Family: fastapi-task
+#      RequiresCompatibilities: [FARGATE]
+#      Cpu: "256"
+#      Memory: "512"
+#      NetworkMode: awsvpc
+#      ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
+#      TaskRoleArn: !GetAtt FastApiTaskRole.Arn
+#      ContainerDefinitions:
+#        - Name: fastapi
+#          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
+#          PortMappings:
+#            - ContainerPort: !Ref ContainerPort
+#
+#  ### ECS Service ###
+#  FastApiService:
+#    Type: AWS::ECS::Service
+#    Properties:
+#      Cluster: !Ref FastApiCluster
+#      TaskDefinition: !Ref FastApiTaskDefinition
+#      DesiredCount: !Ref DesiredCount
+#      LaunchType: FARGATE
+#      EnableExecuteCommand: true
+#      NetworkConfiguration:
+#        AwsvpcConfiguration:
+#          AssignPublicIp: ENABLED
+#          Subnets:
+#            !If
+#              - CreateSubnetCondition
+#              - [ !Ref PublicSubnet ]
+#              - [ !Ref SubnetId ]
+#          SecurityGroups:
+#            !If
+#              - CreateSGCondition
+#              - [ !Ref ECSSecurityGroup ]
+#              - [ !Ref ECSSecurityGroupId ]
+#
+#Outputs:
+#  ECSCluster:
+#    Value: !Ref FastApiCluster
+#    Description: ECS Cluster Name
+#  ECSService:
+#    Value: !Ref FastApiService
+#    Description: ECS Service Name
+
+
+#gpt
+#AWSTemplateFormatVersion: '2010-09-09'
+#Description: ECS Fargate deployment of FastAPI + Postgres using Docker Hub images, with ALB and proper IAM roles.
+#
+#Parameters:
+#  DockerImageName:
+#    Type: String
+#    Default: tangerinedevourer/fastapi_poetry_crud
+#    Description: Docker image for FastAPI (e.g., 'username/fastapi_poetry_crud')
+#  DockerImageTag:
+#    Type: String
+#    Default: 'latest'
+#    Description: Docker image tag (e.g., 'latest')
+#  ContainerPort:
+#    Type: Number
+#    Default: 8000
+#    Description: FastAPI container port
+#
+#  DBUsername:
+#    Type: String
+#    Description: Database username
+#    Default: root
+#  DBPassword:
+#    Type: String
+#    Description: Database password
+#    Default: toor
+#  DBName:
+#    Type: String
+#    Description: Database name
+#    Default: pm_database
+#
+#Resources:
+#
+#  ### VPC & Networking ###
+#  FastApiVPC:
+#    Type: AWS::EC2::VPC
+#    Properties:
+#      CidrBlock: 10.0.0.0/16
+#      EnableDnsSupport: true
+#      EnableDnsHostnames: true
+#      Tags:
+#        - Key: Name
+#          Value: fastapi-vpc
+#
+#  InternetGateway:
+#    Type: AWS::EC2::InternetGateway
+#
+#  AttachGateway:
+#    Type: AWS::EC2::VPCGatewayAttachment
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#      InternetGatewayId: !Ref InternetGateway
+#
+#  PublicSubnet1:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#      CidrBlock: 10.0.1.0/24
+#      AvailabilityZone: !Select [0, !GetAZs ""]
+#      MapPublicIpOnLaunch: true
+#
+#  PublicSubnet2:
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#      CidrBlock: 10.0.2.0/24
+#      AvailabilityZone: !Select [1, !GetAZs ""]
+#      MapPublicIpOnLaunch: true
+#
+#  PublicRouteTable:
+#    Type: AWS::EC2::RouteTable
+#    Properties:
+#      VpcId: !Ref FastApiVPC
+#
+#  PublicRoute:
+#    Type: AWS::EC2::Route
+#    DependsOn: AttachGateway
+#    Properties:
+#      RouteTableId: !Ref PublicRouteTable
+#      DestinationCidrBlock: 0.0.0.0/0
+#      GatewayId: !Ref InternetGateway
+#
+#  PublicSubnetRouteTableAssociation1:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet1
+#      RouteTableId: !Ref PublicRouteTable
+#
+#  PublicSubnetRouteTableAssociation2:
+#    Type: AWS::EC2::SubnetRouteTableAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet2
+#      RouteTableId: !Ref PublicRouteTable
+#
+#  ### Security Groups ###
+#  ALBSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Allow HTTP traffic to ALB
+#      VpcId: !Ref FastApiVPC
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: 80
+#          ToPort: 80
+#          CidrIp: 0.0.0.0/0
+#
+#  ECSSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: Allow traffic from ALB to ECS containers
+#      VpcId: !Ref FastApiVPC
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: !Ref ContainerPort
+#          ToPort: !Ref ContainerPort
+#          SourceSecurityGroupId: !Ref ALBSecurityGroup
+#
+#  ### ECS Cluster ###
+#  ECSCluster:
+#    Type: AWS::ECS::Cluster
+#    Properties:
+#      ClusterName: fastapi-cluster
+#
+#  ### IAM Roles ###
+#  EcsExecutionRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#      ManagedPolicyArns:
+#        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+#
+#  EcsTaskRole:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              Service: ecs-tasks.amazonaws.com
+#            Action: sts:AssumeRole
+#
+#  ### ECS Task Definition ###
+#  FastApiTaskDefinition:
+#    Type: AWS::ECS::TaskDefinition
+#    Properties:
+#      Family: fastapi-task
+#      Cpu: '512'
+#      Memory: '1024'
+#      NetworkMode: awsvpc
+#      RequiresCompatibilities: [FARGATE]
+#      ExecutionRoleArn: !Ref EcsExecutionRole
+#      TaskRoleArn: !Ref EcsTaskRole
+#      ContainerDefinitions:
+#        - Name: fastapi
+#          Image: !Sub "${DockerImageName}:${DockerImageTag}"
+#          PortMappings:
+#            - ContainerPort: !Ref ContainerPort
+#          Environment:
+#            - Name: DB_HOST
+#              Value: postgres
+#            - Name: DB_PORT
+#              Value: '5432'
+#            - Name: DB_USERNAME
+#              Value: !Ref DBUsername
+#            - Name: DB_PASSWORD
+#              Value: !Ref DBPassword
+#            - Name: DB_NAME
+#              Value: !Ref DBName
+#        - Name: postgres
+#          Image: postgres:16
+#          Environment:
+#            - Name: POSTGRES_USER
+#              Value: !Ref DBUsername
+#            - Name: POSTGRES_PASSWORD
+#              Value: !Ref DBPassword
+#            - Name: POSTGRES_DB
+#              Value: !Ref DBName
+#          PortMappings:
+#            - ContainerPort: 5432
+#
+#
+#  ### Load Balancer ###
+#  FastApiALB:
+#    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+#    Properties:
+#      Name: fastapi-alb
+#      Scheme: internet-facing
+#      Subnets:
+#        - !Ref PublicSubnet1
+#        - !Ref PublicSubnet2
+#      SecurityGroups:
+#        - !Ref ALBSecurityGroup
+#  # Target Group
+#  FastApiTargetGroup:
+#    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+#    Properties:
+#      Port: !Ref ContainerPort
+#      Protocol: HTTP
+#      VpcId: !Ref FastApiVPC
+#      HealthCheckPath: '/'
+#      TargetType: ip
+#
+#  FastApiALBListener:
+#    Type: AWS::ElasticLoadBalancingV2::Listener
+#    Properties:
+#      LoadBalancerArn: !Ref FastApiALB
+#      Port: 80
+#      Protocol: HTTP
+#      DefaultActions:
+#        - Type: forward
+#          TargetGroupArn: !Ref FastApiTargetGroup
+#
+#
+#  ### ECS Service ###
+#  FastAPIService:
+#    Type: AWS::ECS::Service
+#    Properties:
+#      Cluster: !Ref ECSCluster
+#      TaskDefinition: !Ref FastApiTaskDefinition
+#      DesiredCount: 1
+#      LaunchType: FARGATE
+#      NetworkConfiguration:
+#        AwsvpcConfiguration:
+#          AssignPublicIp: ENABLED
+#          Subnets:
+#            - !Ref PublicSubnet1
+#            - !Ref PublicSubnet2
+#          SecurityGroups:
+#            - !Ref ECSSecurityGroup
+#      EnableExecuteCommand: true
+#      LoadBalancers:
+#        - ContainerName: fastapi
+#          ContainerPort: !Ref ContainerPort
+#          TargetGroupArn: !Ref FastApiTargetGroup
+#
+#Outputs:
+#  ALBDNSName:
+#    Description: DNS name of the Application Load Balancer
+#    Value: !GetAtt FastApiALB.DNSName
 
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Minimal ECS Fargate deployment of FastAPI Docker image with create-or-reuse VPC/subnet/security group
+Description: "EC2 instance with Docker accessible from the Internet and optional RDS"
 
 Parameters:
-  DockerHubUsername:
+  StackName:
     Type: String
-    Description: Docker Hub username
+    Default: "docker-rds"
+    Description: "Stack name"
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair
+    Default: ec2_instance
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.small
   DockerHubImage:
     Type: String
-    Description: Docker Hub image name
-  ContainerPort:
-    Type: Number
-    Default: 8000
-  DesiredCount:
-    Type: Number
-    Default: 1
-  VpcId:
+    Description: Docker Hub image name (e.g., username/image:tag)
+    Default: "tangerinedevourer/fastapi_poetry_crud"
+  DBUsername:
     Type: String
     Default: ""
-    Description: Optional existing VPC ID. Leave empty to create a new VPC.
-  SubnetId:
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Default: "eightcharacters1"
+  DBName:
+    Type: String
+    Default: "pm_database"
+  RdsEndpoint:
     Type: String
     Default: ""
-    Description: Optional existing public subnet ID. Leave empty to create a new subnet.
-  ECSSecurityGroupId:
-    Type: String
-    Default: ""
-    Description: Optional existing ECS security group ID. Leave empty to create a new SG.
+    Description: "Endpoint of an existing RDS instance. Leave empty to create a new one."
 
 Conditions:
-  CreateVpcCondition: !Equals [ !Ref VpcId, "" ]
-  CreateSubnetCondition: !Equals [ !Ref SubnetId, "" ]
-  CreateSGCondition: !Equals [ !Ref ECSSecurityGroupId, "" ]
+  CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]
 
 Resources:
-  ### VPC ###
-  FastApiVPC:
+
+  ##################################
+  # Networking
+  ##################################
+  MyVPC:
     Type: AWS::EC2::VPC
-    Condition: CreateVpcCondition
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: fastapi-vpc
+          Value: "DockerVPC"
 
-  ### Subnet ###
-  PublicSubnet:
-    Type: AWS::EC2::Subnet
-    Condition: CreateSubnetCondition
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
     Properties:
-      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+      Tags:
+        - Key: Name
+          Value: "DockerIGW"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC
+      InternetGatewayId: !Ref MyInternetGateway
+
+  MyPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [0, !GetAZs ""]
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: "DockerPublicSubnet"
 
-  ### ECS Security Group ###
-  ECSSecurityGroup:
+  MyPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MyRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref MyPublicSubnet
+      RouteTableId: !Ref MyRouteTable
+
+  ##################################
+  # Security Groups
+  ##################################
+  AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: CreateSGCondition
     Properties:
-      GroupDescription: Allow traffic to ECS
-      VpcId: !If [CreateVpcCondition, !Ref FastApiVPC, !Ref VpcId]
+      GroupDescription: "Allow SSH and HTTP access"
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
 
-  ### ECS Cluster ###
-  FastApiCluster:
-    Type: AWS::ECS::Cluster
+  MyDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateNewRDS
+    Properties:
+      GroupDescription: "Allow EC2 to access RDS"
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
 
-  FastApiTaskRole:
+  ##################################
+  # RDS (optional)
+  ##################################
+  MyDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: CreateNewRDS
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for RDS"
+      SubnetIds:
+        - !Ref MyPublicSubnet
+        - !Ref MyPublicSubnet2
+
+  MyRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Condition: CreateNewRDS
+    Properties:
+      DBInstanceIdentifier: mydb2
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBName: !Ref DBName
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      VPCSecurityGroups:
+        - !Ref MyDBSecurityGroup
+      DBSubnetGroupName: !Ref MyDBSubnetGroup
+      PubliclyAccessible: true
+
+  ##################################
+  # IAM Role for EC2
+  ##################################
+  EC2InstanceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -228,70 +716,79 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
+              Service: ec2.amazonaws.com
             Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Path: "/"
+      Policies:
+        - PolicyName: EC2RDSAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                Resource: "*"
 
-  ### ECS Task Execution Role ###
-  FastApiTaskExecutionRole:
-    Type: AWS::IAM::Role
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
     Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Roles:
+        - !Ref EC2InstanceRole
 
-  ### ECS Task Definition ###
-  FastApiTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
+  ##################################
+  # EC2 Instance
+  ##################################
+  AppEC2Instance:
+    Type: AWS::EC2::Instance
     Properties:
-      Family: fastapi-task
-      RequiresCompatibilities: [FARGATE]
-      Cpu: "256"
-      Memory: "512"
-      NetworkMode: awsvpc
-      ExecutionRoleArn: !GetAtt FastApiTaskExecutionRole.Arn
-      TaskRoleArn: !GetAtt FastApiTaskRole.Arn
-      ContainerDefinitions:
-        - Name: fastapi
-          Image: !Sub "${DockerHubUsername}/${DockerHubImage}:latest"
-          PortMappings:
-            - ContainerPort: !Ref ContainerPort
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref MyPublicSubnet
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      ImageId: !Sub "{{resolve:ssm:/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id}}"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install -y docker.io awscli jq
+          systemctl start docker
+          systemctl enable docker
 
-  ### ECS Service ###
-  FastApiService:
-    Type: AWS::ECS::Service
-    Properties:
-      Cluster: !Ref FastApiCluster
-      TaskDefinition: !Ref FastApiTaskDefinition
-      DesiredCount: !Ref DesiredCount
-      LaunchType: FARGATE
-      EnableExecuteCommand: true
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          Subnets:
-            !If
-              - CreateSubnetCondition
-              - [ !Ref PublicSubnet ]
-              - [ !Ref SubnetId ]
-          SecurityGroups:
-            !If
-              - CreateSGCondition
-              - [ !Ref ECSSecurityGroup ]
-              - [ !Ref ECSSecurityGroupId ]
+          # Determine RDS endpoint
+          if [ -z "${RdsEndpoint}" ]; then
+            echo "Waiting for RDS instance to become available..."
+            aws rds wait db-instance-available \
+                --db-instance-identifier mydb2 \
+                --region 'eu-north-1'
+            RDS_ENDPOINT=$(aws rds describe-db-instances \
+              --db-instance-identifier mydb2 \
+              --query "DBInstances[0].Endpoint.Address" \
+              --output text \
+              --region 'eu-north-1')
+          else
+            RDS_ENDPOINT=${RdsEndpoint}
+          fi
+
+          echo "Using RDS endpoint: $RDS_ENDPOINT"
+
+          docker pull ${DockerHubImage}
+          docker stop mycontainer || true
+          docker rm mycontainer || true
+
+          docker run -d -p 80:8000 \
+            -e DB_HOST=$RDS_ENDPOINT \
+            -e DB_PORT=5432 \
+            -e DB_USERNAME=${DBUsername} \
+            -e DB_PASSWORD=${DBPassword} \
+            -e DB_NAME=${DBName} \
+            --name mycontainer \
+            ${DockerHubImage}
 
 Outputs:
-  ECSCluster:
-    Value: !Ref FastApiCluster
-    Description: ECS Cluster Name
-  ECSService:
-    Value: !Ref FastApiService
-    Description: ECS Service Name
+  InstancePublicIP:
+    Description: Public IP of the EC2 instance
+    Value: !GetAtt AppEC2Instance.PublicIp
+
 
