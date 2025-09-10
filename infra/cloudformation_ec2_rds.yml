@@ -223,11 +223,19 @@ Resources:
       Roles:
         - !Ref EC2InstanceRole
 
+
+  ##################################
+  # Lambda Function and S3 Trigger
+  ##################################
   # Input bucket (triggers Lambda)
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "documents-03aac4"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt MyLambdaFunction.Arn
 
   # Output bucket (where Lambda can write results)
   OutputBucket:
@@ -278,15 +286,14 @@ Resources:
       Layers:
         - arn:aws:lambda:eu-north-1:770693421928:layer:Klayers-p312-pillow:2
 
-  # Bucket event notification
-  InputBucketNotification:
-    Type: AWS::S3::BucketNotification
+  # Permission for the S3 bucket to invoke the Lambda function
+  S3LambdaPermission:
+    Type: AWS::Lambda::Permission
     Properties:
-      Bucket: !Ref InputBucket
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: "s3:ObjectCreated:*"
-            Function: !GetAtt MyLambdaFunction.Arn
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt MyLambdaFunction.Arn
+      Principal: 's3.amazonaws.com'
+      SourceArn: !GetAtt InputBucket.Arn
 
 
   ##################################
