@@ -165,7 +165,7 @@ jobs:
           TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/cloudformation_ec2_rds.yml"
            aws cloudformation deploy \
             --template-file "$TEMPLATE_PATH" \
-            --stack-name ec2-rds \
+            --stack-name fastapi-stack \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               DockerHubImage=${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud \
@@ -176,3 +176,13 @@ jobs:
               DBName=${{ secrets.DBNAME }} \
               TokenSecretKey=${{ secrets.TOKEN_SECRET_KEY }} \
               StorageBackend="s3"
+
+      - name: Get Stack Outputs
+        id: get_output
+        run: |
+          PUBLIC_IP=$(aws cloudformation describe-stacks \
+            --stack-name fastapi-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
+            --output text)
+          echo "::set-output name=instance-ip::$PUBLIC_IP"
+          echo "Public IP: $PUBLIC_IP"

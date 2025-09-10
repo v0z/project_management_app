@@ -199,6 +199,13 @@ Resources:
                 Action:
                   - rds:DescribeDBInstances
                 Resource: "*"
+        - PolicyName: EC2S3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "s3:*"
+                Resource: "*"
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -246,18 +253,38 @@ Resources:
 
           docker stop mycontainer || true
           docker rm mycontainer || true
-          docker pull ${DockerHubImage}:${DockerImageTag}
-
-          docker run -d -p 80:8000 \
-            -e DB_HOST=$RDS_ENDPOINT \
-            -e DB_PORT=5432 \
-            -e DB_USERNAME=${DBUsername} \
-            -e DB_PASSWORD=${DBPassword} \
-            -e DB_NAME=${DBName} \
-            -e TOKEN_SECRET_KEY=${TokenSecretKey} \
-            -e STORAGE_BACKEND=${StorageBackend} \
-            --name mycontainer \
-            ${DockerHubImage}:${DockerImageTag}
+          
+          # Pull the new image and run the container with a retry loop
+          IMAGE_URL="${DockerHubImage}:${DockerImageTag}"
+          echo "Attempting to pull and run $IMAGE_URL"
+          
+          MAX_RETRIES=10
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if docker run -d -p 80:8000 \
+                  -e DB_HOST=$RDS_ENDPOINT \
+                  -e DB_PORT=5432 \
+                  -e DB_USERNAME=${DBUsername} \
+                  -e DB_PASSWORD=${DBPassword} \
+                  -e DB_NAME=${DBName} \
+                  -e TOKEN_SECRET_KEY=${TokenSecretKey} \
+                  -e STORAGE_BACKEND=${StorageBackend} \
+                  --name mycontainer \
+                  $IMAGE_URL; then
+                  echo "Docker container started successfully."
+                  break
+              else
+                  echo "Docker run failed. Retrying in 10 seconds..."
+                  RETRY_COUNT=$((RETRY_COUNT+1))
+                  sleep 10
+              fi
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+              echo "Failed to start Docker container after $MAX_RETRIES attempts." >&2
+              exit 1
+          fi
 
 Outputs:
   InstancePublicIP:
