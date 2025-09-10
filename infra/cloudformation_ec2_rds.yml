@@ -304,13 +304,16 @@ Resources:
       Principal: 's3.amazonaws.com'
       SourceArn: !GetAtt InputBucket.Arn
 
-  InputBucketNotification:
-    Type: AWS::S3::BucketNotificationConfiguration
+  BucketNotification:
+    Type: Custom::S3BucketNotification
+    DependsOn: S3LambdaPermission
     Properties:
+      ServiceToken: !GetAtt BucketNotificationLambda.Arn
       Bucket: !Ref InputBucket
-      LambdaConfigurations:
-        - Event: s3:ObjectCreated:*
-          Function: !GetAtt MyLambdaFunction.Arn
+      NotificationConfiguration:
+        LambdaFunctionConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt MyLambdaFunction.Arn
 
   ##################################
   # EC2 Instance
