@@ -243,13 +243,8 @@ Resources:
   # Input bucket (triggers Lambda)
   InputBucket:
     Type: AWS::S3::Bucket
-    DependsOn: S3LambdaPermission
     Properties:
       BucketName: !Ref NewInputBucketName
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: "s3:ObjectCreated:*"
-            Function: !GetAtt MyLambdaFunction.Arn
 
   # Output bucket (where Lambda can write results)
   OutputBucket:
@@ -309,6 +304,13 @@ Resources:
       Principal: 's3.amazonaws.com'
       SourceArn: !GetAtt InputBucket.Arn
 
+  InputBucketNotification:
+    Type: AWS::S3::BucketNotificationConfiguration
+    Properties:
+      Bucket: !Ref InputBucket
+      LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Function: !GetAtt MyLambdaFunction.Arn
 
   ##################################
   # EC2 Instance
