@@ -6,7 +6,7 @@ import jwt
 from jwt import PyJWTError
 from passlib.context import CryptContext
 
-from app.core.config import Settings
+from app.infrastructure.core.config import Settings
 
 settings = Settings()
 

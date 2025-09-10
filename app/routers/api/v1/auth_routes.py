@@ -2,13 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import ValidationError
 
-from app.core.logger import logger
 from app.domain.exceptions.user_exceptions import (
     UserAlreadyExistsError, UserWithEmailAlreadyExistsError)
-from app.presentation.dependencies import get_auth_service, get_current_user
-from app.presentation.schemas.auth_schemas import (RegisterRequest,
-                                                   TokenResponse, UserOut,
-                                                   UserResponse)
+from app.infrastructure.core.logger import logger
+from app.routers.dependencies import get_auth_service, get_current_user
+from app.routers.schemas.auth_schemas import (RegisterRequest, TokenResponse,
+                                              UserOut, UserResponse)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

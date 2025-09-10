@@ -1,9 +1,6 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from app.application.services.user_project_role_service import \
-    UserProjectRoleService
-from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
 from app.domain.enities.user_project_role import RoleEnum
 from app.domain.exceptions.document_exceptions import DocumentFileDeleteError
@@ -16,7 +13,9 @@ from app.domain.exceptions.project_exceptions import (ProjectCreateError,
                                                       ProjectUpdateError)
 from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.storage.document_storage import DocumentStorage
-from app.presentation.schemas.project_schemas import ProjectUpdateRequest
+from app.infrastructure.core.exceptions import DatabaseError
+from app.routers.schemas.project_schemas import ProjectUpdateRequest
+from app.services.user_project_role_service import UserProjectRoleService
 
 
 class ProjectService:

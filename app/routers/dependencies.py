@@ -1,18 +1,15 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from app.application.services.auth_service import AuthService
-from app.application.services.document_service import DocumentService
-from app.application.services.project_service import ProjectService
-from app.application.services.user_project_role_service import \
-    UserProjectRoleService
-from app.core.security import decode_access_token
 from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.repositories.user_project_role_repository import \
     UserProjectRoleRepository
 from app.domain.repositories.user_repository import UserRepository
-from app.presentation.schemas.auth_schemas import UserOut
+from app.infrastructure.core.security import decode_access_token
+from app.routers.schemas.auth_schemas import UserOut
+from app.services import (AuthService, DocumentService, ProjectService,
+                          UserProjectRoleService)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

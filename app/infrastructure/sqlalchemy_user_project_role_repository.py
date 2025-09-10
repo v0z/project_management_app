@@ -3,10 +3,10 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import DatabaseError
 from app.domain.enities.user_project_role import UserProjectRole
 from app.domain.repositories.user_project_role_repository import \
     UserProjectRoleRepository
+from app.infrastructure.core.exceptions import DatabaseError
 from app.infrastructure.orm import UserProjectRoleORM
 
 

@@ -6,10 +6,10 @@ from botocore.exceptions import ClientError
 from fastapi import UploadFile
 from mypy_boto3_s3.client import S3Client
 
-from app.core.config import settings
-from app.core.logger import logger
 from app.domain.storage.document_storage import DocumentStorage
 from app.domain.storage.utils import filename_normalizer
+from app.infrastructure.core.config import settings
+from app.infrastructure.core.logger import logger
 
 
 class S3DocumentStorage(DocumentStorage):
@@ -20,7 +20,10 @@ class S3DocumentStorage(DocumentStorage):
     def __init__(self):
         self.bucket_name: str = settings.aws_s3_bucket_name
         s3 =  boto3.client(
-            "s3", aws_access_key_id=settings.aws_access_key_id, aws_secret_access_key=settings.aws_secret_access_key
+            "s3",
+            # commented out to force to use instance profile credentials automatically.
+            # aws_access_key_id=settings.aws_access_key_id,
+            # aws_secret_access_key=settings.aws_secret_access_key
         )
         region = s3.meta.region_name
         self.client: S3Client = boto3.client(

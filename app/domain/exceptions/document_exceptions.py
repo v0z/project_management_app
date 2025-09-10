@@ -2,8 +2,8 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.core.logger import logger
 from app.domain.exceptions.project_exceptions import ProjectPermissionError
+from app.infrastructure.core.logger import logger
 
 
 class DocumentNotFoundError(Exception):

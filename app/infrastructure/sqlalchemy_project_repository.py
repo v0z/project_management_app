@@ -5,12 +5,12 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import DatabaseError
 from app.domain.enities import Project
 from app.domain.enities.document import Document
 from app.domain.enities.project import Project as DomainProject
 from app.domain.enities.user_project_role import UserProjectRole
 from app.domain.repositories.project_repository import ProjectRepository
+from app.infrastructure.core.exceptions import DatabaseError
 from app.infrastructure.orm import ProjectORM, UserProjectRoleORM
 
 

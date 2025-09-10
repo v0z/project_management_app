@@ -1,12 +1,12 @@
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base
+from app.infrastructure.core.database import Base
 
 if TYPE_CHECKING:
     from app.infrastructure.orm.user_model import UserORM

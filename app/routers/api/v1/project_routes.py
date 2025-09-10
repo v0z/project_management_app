@@ -2,11 +2,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.services.project_service import ProjectService
-from app.application.services.user_project_role_service import \
-    UserProjectRoleService
-from app.core.exceptions import DatabaseError
-from app.core.logger import logger
 from app.domain.exceptions.project_exceptions import (ProjectCreateError,
                                                       ProjectDeleteError,
                                                       ProjectNotFoundError,
@@ -16,14 +11,16 @@ from app.domain.exceptions.project_exceptions import (ProjectCreateError,
 from app.domain.exceptions.user_project_role_exceptions import (
     ProjectRoleAddByUsernameError, ProjectRoleAddNotAuthorizedError,
     ProjectRoleCreateError)
-from app.presentation.dependencies import (get_current_user,
-                                           get_project_service,
-                                           get_role_service_provider)
-from app.presentation.schemas.auth_schemas import UserOut
-from app.presentation.schemas.project_schemas import (ProjectCreateRequest,
-                                                      ProjectFullDetails,
-                                                      ProjectResponse,
-                                                      ProjectUpdateRequest)
+from app.infrastructure.core.exceptions import DatabaseError
+from app.infrastructure.core.logger import logger
+from app.routers.dependencies import (get_current_user, get_project_service,
+                                      get_role_service_provider)
+from app.routers.schemas.auth_schemas import UserOut
+from app.routers.schemas.project_schemas import (ProjectCreateRequest,
+                                                 ProjectFullDetails,
+                                                 ProjectResponse,
+                                                 ProjectUpdateRequest)
+from app.services import ProjectService, UserProjectRoleService
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

@@ -1,5 +1,4 @@
-from app.infrastructure.orm import UserORM, ProjectORM, UserProjectRoleORM, DocumentORM
-from app.core.database import Base, engine
+from app.infrastructure.core.database import Base, engine
 
 
 

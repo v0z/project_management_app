@@ -5,7 +5,7 @@ from app.domain.enities import Project
 from app.domain.enities.document import Document
 from app.domain.enities.user_project_role import RoleEnum
 import pytest
-from app.application.services import ProjectService
+from app.services.project_service import ProjectService
 
 
 def test_add_project():

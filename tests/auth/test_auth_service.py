@@ -6,7 +6,7 @@ import pytest
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 
-from app.core.security import create_access_token, hash_password, verify_password
+from app.infrastructure.core.security import create_access_token, hash_password, verify_password
 
 load_dotenv()
 

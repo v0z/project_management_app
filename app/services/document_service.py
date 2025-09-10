@@ -1,25 +1,26 @@
+from collections.abc import Coroutine
 from datetime import datetime
 from typing import Any
-from collections.abc import Coroutine
 from uuid import UUID, uuid4
 
 from black import timezone
 from fastapi import UploadFile
 from starlette.responses import FileResponse, StreamingResponse
 
-from app.application.services import ProjectService
-from app.core.exceptions import DatabaseError
-from app.core.logger import logger
 from app.domain.enities.document import Document
 from app.domain.enities.user_project_role import RoleEnum
 from app.domain.exceptions.document_exceptions import (
     DocumentAccessError, DocumentCreateError, DocumentDBDeleteError,
     DocumentDeleteRightsError, DocumentFileDeleteError, DocumentFileSaveError,
-    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmptyError)
+    DocumentRetrieveError, DocumentUnsupportedStorageBackendError,
+    DocumentUpdateEmptyError)
 from app.domain.repositories.document_repository import DocumentRepository
 from app.domain.storage.document_storage import DocumentStorage
+from app.infrastructure.core.exceptions import DatabaseError
+from app.infrastructure.core.logger import logger
 from app.infrastructure.orm import DocumentORM
-from app.presentation.schemas.document_schemas import DocumentDetailSchema
+from app.routers.schemas.document_schemas import DocumentDetailSchema
+from app.services.project_service import ProjectService
 
 
 class DocumentService:

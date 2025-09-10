@@ -48,7 +48,7 @@ Parameters:
   StorageBackend:
     Type: String
     Default: "s3"
-    Description: "The storage backend for the application."
+    Description: "The storage backend for the services."
 
 Conditions:
   CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]

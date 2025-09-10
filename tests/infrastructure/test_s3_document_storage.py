@@ -10,9 +10,9 @@ from app.infrastructure.storage.s3_document_storage import S3DocumentStorage
 def storage(monkeypatch):
     """Fixture that sets up mocked S3 with our storage class."""
     with mock_aws():
-        monkeypatch.setattr("app.core.config.settings.aws_s3_bucket_name", "test-bucket")
-        monkeypatch.setattr("app.core.config.settings.aws_access_key_id", "test")
-        monkeypatch.setattr("app.core.config.settings.aws_secret_access_key", "test")
+        monkeypatch.setattr("app.infrastructure.core.config.settings.aws_s3_bucket_name", "test-bucket")
+        monkeypatch.setattr("app.infrastructure.core.config.settings.aws_access_key_id", "test")
+        monkeypatch.setattr("app.infrastructure.core.config.settings.aws_secret_access_key", "test")
 
         storage = S3DocumentStorage()
         yield storage

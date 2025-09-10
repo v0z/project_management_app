@@ -4,9 +4,9 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import DatabaseError
 from app.domain.enities.document import Document
 from app.domain.repositories.document_repository import DocumentRepository
+from app.infrastructure.core.exceptions import DatabaseError
 from app.infrastructure.orm import DocumentORM, ProjectORM, UserProjectRoleORM
 
 

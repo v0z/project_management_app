@@ -4,15 +4,11 @@ from functools import lru_cache
 import uvicorn
 from fastapi import Depends, FastAPI
 
-from app.application.services import AuthService, ProjectService
-from app.application.services.document_service import DocumentService
-from app.application.services.user_project_role_service import \
-    UserProjectRoleService
-from app.core.database import get_db, settings, Base, engine
-from app.core.logger import logger
 from app.domain.storage.document_storage import DocumentStorage
 from app.infrastructure import (SQLAlchemyProjectRepository,
                                 SQLAlchemyUserRepository)
+from app.infrastructure.core.database import Base, engine, get_db, settings
+from app.infrastructure.core.logger import logger
 from app.infrastructure.sqlalchemy_documet_repository import \
     SQLAlchemyDocumentRepository
 from app.infrastructure.sqlalchemy_user_project_role_repository import \
@@ -20,15 +16,18 @@ from app.infrastructure.sqlalchemy_user_project_role_repository import \
 from app.infrastructure.storage.file_system_document_storage import \
     FileSystemDocumentStorage
 from app.infrastructure.storage.s3_document_storage import S3DocumentStorage
-from app.presentation.api import auth_router, document_router, project_router
-from app.presentation.dependencies import (get_auth_service,
-                                           get_document_repository,
-                                           get_document_service,
-                                           get_project_repository,
-                                           get_project_service,
-                                           get_role_repository_provider,
-                                           get_role_service_provider,
-                                           get_user_repository)
+from app.routers.api import auth_router, document_router, project_router
+from app.routers.dependencies import (get_auth_service,
+                                      get_document_repository,
+                                      get_document_service,
+                                      get_project_repository,
+                                      get_project_service,
+                                      get_role_repository_provider,
+                                      get_role_service_provider,
+                                      get_user_repository)
+from app.services import (AuthService, DocumentService, ProjectService,
+                          UserProjectRoleService)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

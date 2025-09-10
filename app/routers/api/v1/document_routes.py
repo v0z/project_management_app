@@ -1,20 +1,20 @@
 from uuid import UUID
 
-from fastapi import (APIRouter, Depends, Form, HTTPException, UploadFile,
-                     status, File)
+from fastapi import (APIRouter, Depends, File, Form, HTTPException, UploadFile,
+                     status)
 
-from app.application.services.document_service import DocumentService
-from app.core.config import settings
-from app.core.logger import logger
 from app.domain.exceptions.document_exceptions import (
     DocumentAccessError, DocumentCreateError, DocumentFileSaveError,
-    DocumentRetrieveError, DocumentUnsupportedStorageBackendError, DocumentUpdateEmptyError)
+    DocumentRetrieveError, DocumentUnsupportedStorageBackendError,
+    DocumentUpdateEmptyError)
 from app.domain.exceptions.project_exceptions import ProjectPermissionError
-from app.presentation.dependencies import (get_current_user,
-                                           get_document_service)
-from app.presentation.schemas.auth_schemas import UserOut
-from app.presentation.schemas.document_schemas import (DocumentDetailSchema,
-                                                       DocumentSchema)
+from app.infrastructure.core.config import settings
+from app.infrastructure.core.logger import logger
+from app.routers.dependencies import get_current_user, get_document_service
+from app.routers.schemas.auth_schemas import UserOut
+from app.routers.schemas.document_schemas import (DocumentDetailSchema,
+                                                  DocumentSchema)
+from app.services import DocumentService
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 

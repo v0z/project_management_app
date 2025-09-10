@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     pgadmin_default_email: EmailStr = "fast@api.com"
     pgadmin_default_password: str = ""
 
-    allowed_types: list = ["application/pdf", "image/png", "image/jpeg", "image/bmp"]
+    allowed_types: list = ["services/pdf", "image/png", "image/jpeg", "image/bmp"]
     max_file_size: int = 5
 
     # storage type: local or cloud

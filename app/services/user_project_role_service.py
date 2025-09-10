@@ -1,6 +1,5 @@
 from uuid import UUID
 
-from app.core.exceptions import DatabaseError
 from app.domain.enities.user_project_role import RoleEnum, UserProjectRole
 from app.domain.exceptions.user_project_role_exceptions import (
     ProjectRoleAddByUsernameError, ProjectRoleAddNotAuthorizedError,
@@ -10,7 +9,8 @@ from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.repositories.user_project_role_repository import \
     UserProjectRoleRepository
 from app.domain.repositories.user_repository import UserRepository
-from app.presentation.schemas.auth_schemas import UserOut
+from app.infrastructure.core.exceptions import DatabaseError
+from app.routers.schemas.auth_schemas import UserOut
 
 
 class UserProjectRoleService:
