@@ -30,17 +30,21 @@ from app.presentation.dependencies import (get_auth_service,
                                            get_role_service_provider,
                                            get_user_repository)
 
-app = FastAPI(title="FastAPI Project Management Mess", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create tables
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully!")
+    yield
+
+
+app = FastAPI(title="FastAPI Project Management App", version="1.0.0", lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(project_router)
 app.include_router(document_router)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: create tables
-    Base.metadata.create_all(bind=engine)
-    yield
+
 
 
 # TODO put in a livespan event or move to a dependency container
