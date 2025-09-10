@@ -395,14 +395,15 @@ Resources:
 Outputs:
   InputBucketName:
     Description: "Upload files here to trigger Lambda"
-    Value: !Ref InputBucket
-
-  OutputBucketName:
-    Description: "Processed results will be saved here"
     Value: !If
       - CreateInputBucket
       - !Ref NewInputBucketName
       - !Ref ExistingInputBucketName
+
+  OutputBucketName:
+    Description: "Processed results will be saved here"
+    Value: !Ref NewOutputBucketName
+
 
   LambdaFunctionName:
     Description: "Lambda function name"
