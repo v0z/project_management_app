@@ -28,7 +28,7 @@ class S3DocumentStorage(DocumentStorage):
             region_name=self.region
         )
         # Ensure bucket exists at initialization if not will call create bucket method
-        # self._ensure_bucket_exists() - # causes cloudformation isssues
+        self._ensure_bucket_exists()
 
     @property
     def storage_backend(self) -> str:
@@ -78,9 +78,6 @@ class S3DocumentStorage(DocumentStorage):
 
         # sanitize the file name
         normalized_file_name = filename_normalizer(uploaded_file.filename)
-
-        # ensure bucket exists
-        self._ensure_bucket_exists()
 
         # s3 key, (s3 prefix)
         storage_key = f"{project_folder}/{normalized_file_name}"
