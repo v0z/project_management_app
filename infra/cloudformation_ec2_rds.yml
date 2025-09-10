@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "EC2 instance with Docker accessible from the Internet and optional RDS"
+
+Parameters:
+  StackName:
+    Type: String
+    Default: "ec2-rds"
+    Description: "Stack name"
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair
+    Default: ec2_instance
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.small
+  DockerHubImage:
+    Type: String
+    Description: Docker Hub image name (e.g., username/image:tag)
+    Default: "tangerinedevourer/fastapi_poetry_crud"
+  DockerImageTag:
+    Type: String
+    Description: The Docker image tag to deploy (e.g., 'latest' or a Git SHA)
+    Default: "latest"
+  DBUsername:
+    Type: String
+    Default: ""
+  DBPassword:
+    Type: String
+    NoEcho: true
+  DBName:
+    Type: String
+  RdsEndpoint:
+    Type: String
+    Default: ""
+    Description: "Endpoint of an existing RDS instance. Leave empty to create a new one."
+  DBInstanceIdentifier:
+    Type: String
+    Default: "fastapidb"
+    Description: "Identifier for the new RDS instance if creating one."
+  TokenSecretKey:
+    Type: String
+    Description: "Secret key for token generation"
+    NoEcho: true
+  StorageBackend:
+    Type: String
+    Default: "s3"
+    Description: "The storage backend for the application."
+
+Conditions:
+  CreateNewRDS: !Equals [ !Ref RdsEndpoint, "" ]
+
+Resources:
+
+  ##################################
+  # Networking
+  ##################################
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "DockerVPC"
+
+  MyInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "DockerIGW"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC
+      InternetGatewayId: !Ref MyInternetGateway
+
+  MyPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: "DockerPublicSubnet"
+
+  MyPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref MyRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref MyInternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref MyPublicSubnet
+      RouteTableId: !Ref MyRouteTable
+
+  ##################################
+  # Security Groups
+  ##################################
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow SSH and HTTP access"
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  MyDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateNewRDS
+    Properties:
+      GroupDescription: "Allow EC2 to access RDS"
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  ##################################
+  # RDS (optional)
+  ##################################
+  MyDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: CreateNewRDS
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for RDS"
+      SubnetIds:
+        - !Ref MyPublicSubnet
+        - !Ref MyPublicSubnet2
+
+  MyRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Condition: CreateNewRDS
+    Properties:
+      DBInstanceIdentifier: mydb2
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBName: !Ref DBName
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      VPCSecurityGroups:
+        - !Ref MyDBSecurityGroup
+      DBSubnetGroupName: !Ref MyDBSubnetGroup
+      PubliclyAccessible: true
+
+  ##################################
+  # IAM Role for EC2
+  ##################################
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: EC2RDSAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                Resource: "*"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRole
+
+  ##################################
+  # EC2 Instance
+  ##################################
+  AppEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref MyPublicSubnet
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      ImageId: !Sub "{{resolve:ssm:/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id}}"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install -y docker.io awscli jq
+          systemctl start docker
+          systemctl enable docker
+
+          # Determine RDS endpoint
+          if [ -z "${RdsEndpoint}" ]; then
+            echo "Waiting for RDS instance to become available..."
+            aws rds wait db-instance-available \
+                --db-instance-identifier ${DBInstanceIdentifier} \
+                --region ${AWS::Region}
+            RDS_ENDPOINT=$(aws rds describe-db-instances \
+              --db-instance-identifier ${DBInstanceIdentifier} \
+              --query "DBInstances[0].Endpoint.Address" \
+              --output text \
+              --region ${AWS::Region})
+          else
+            RDS_ENDPOINT=${RdsEndpoint}
+          fi
+
+          echo "Using RDS endpoint: $RDS_ENDPOINT"
+
+          docker stop mycontainer || true
+          docker rm mycontainer || true
+          docker pull ${DockerHubImage}:${DockerImageTag}
+
+          docker run -d -p 80:8000 \
+            -e DB_HOST=$RDS_ENDPOINT \
+            -e DB_PORT=5432 \
+            -e DB_USERNAME=${DBUsername} \
+            -e DB_PASSWORD=${DBPassword} \
+            -e DB_NAME=${DBName} \
+            -e TOKEN_SECRET_KEY=${TokenSecretKey} \
+            -e STORAGE_BACKEND=${StorageBackend} \
+            --name mycontainer \
+            ${DockerHubImage}:${DockerImageTag}
+
+Outputs:
+  InstancePublicIP:
+    Description: Public IP of the EC2 instance
+    Value: !GetAtt AppEC2Instance.PublicIp
+
+
