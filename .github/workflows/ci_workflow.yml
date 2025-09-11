@@ -156,13 +156,13 @@ jobs:
         run: |
           echo "Validating CloudFormation template..."
           aws cloudformation validate-template \
-            --template-body file://${GITHUB_WORKSPACE}/infra/cloudformation_ec2_rds.yml
+            --template-body file://${GITHUB_WORKSPACE}/aws/cloudformation_ec2_rds.yml
           
 
       - name: Deploy CloudFormation stack
         timeout-minutes: 15
         run: |
-          TEMPLATE_PATH="${GITHUB_WORKSPACE}/infra/cloudformation_ec2_rds.yml"
+          TEMPLATE_PATH="${GITHUB_WORKSPACE}/aws/cloudformation_ec2_rds.yml"
            aws cloudformation deploy \
             --template-file "$TEMPLATE_PATH" \
             --stack-name fastapi-stack \

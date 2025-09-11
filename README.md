@@ -16,7 +16,19 @@ Dependency management is handled with **Poetry**, and developer tasks are automa
   - Code quality and linting (`Ruff, isort, Black, mypy`)  
   - Unit testing across multiple Python versions  
   - Dependency checks for outdated packages
-  - Security scans with Bandit
+  - Security scans with Bandit 
+  - On push to `main`, GitHub Actions automatically builds and pushes a Docker image to the configured **DockerHub repository**.  
+- **Infrastructure as Code (IaC) with AWS CloudFormation**:  
+  - A CloudFormation template provisions all required resources automatically.  
+  - (Note: currently the previous stack must be deleted before redeployment).  
+  - Resources created include:  
+    - **VPC** with networking setup.  
+    - **EC2 instance** for hosting the application.  
+    - **RDS PostgreSQL database**.  
+    - **S3 buckets** for storage, including one with a **Lambda trigger**.
+    - (Note: Currently the Lambda trigger needs to be set manually because the custom BucketNotification resource
+    - though works, but the stack deployment process is in pending state which results in an error in Github Actions)
+    - **Lambda function** (from a pre-uploaded zip in S3) that resizes images placed in one bucket and saves the processed images into another bucket.  
 - **Custom File Logging**:  
   The application uses a custom logging system that writes logs to a `logs/` directory.  
   All logs are stored in a single file named `app.log`.
@@ -180,34 +192,26 @@ make test
 
 ## 📡 API Endpoints
 
-### **Auth**
-| Method | Endpoint         | Description        |
-|--------|-----------------|------------------|
-| POST   | `/auth/`        | Register User      |
-| POST   | `/auth/login`   | Login              |
+## 📡 API Endpoints
 
-### **Projects**
-| Method | Endpoint                   | Description        |
-|--------|----------------------------|------------------|
-| GET    | `/projects/`               | Show all projects  |
-| POST   | `/projects/`               | Create project     |
-| GET    | `/projects/{project_id}`   | Get a project      |
-| PATCH  | `/projects/{project_id}`   | Update project     |
-| DELETE | `/projects/{project_id}`   | Delete project     |
+| Category      | Method | Endpoint                                           | Description                     |
+|---------------|--------|----------------------------------------------------|---------------------------------|
+| **Auth**      | POST   | `/auth/`                                           | Register a new user             |
+|               | POST   | `/auth/login`                                      | Login and retrieve access token |
+|               | GET    | `/auth/protected`                                  | Just an auth test endpoint      |
+| **Projects**  | GET    | `/projects/`                                       | List all projects               |
+|               | POST   | `/projects/`                                       | Create a new project            |
+|               | GET    | `/projects/{project_id}`                           | Retrieve a specific project     |
+|               | PATCH  | `/projects/{project_id}`                           | Update a project                |
+|               | DELETE | `/projects/{project_id}`                           | Delete a project                |
+|               | POST   | `/projects/{project_id}/invite`                    | Invite a user to a project      |
+| **Documents** | GET    | `/projects/{project_id}/documents/`                | List all documents in a project |
+|               | POST   | `/projects/{project_id}/documents/`                | Upload a document               |
+|               | GET    | `/projects/{project_id}/documents/{document_id}`   | Download a document             |
+|               | PATCH  | `/projects/{project_id}/documents/{document_id}`   | Update document metadata        |
+|               | DELETE | `/projects/{project_id}/documents/{document_id}`   | Delete a document               |
+| **Health**    | GET    | `/`                                                | Health check endpoint           |
 
-### **Documents**
-| Method | Endpoint                                          | Description         |
-|--------|--------------------------------------------------|-------------------|
-| GET    | `/projects/{project_id}/documents/`             | List Documents      |
-| POST   | `/projects/{project_id}/documents/`             | Upload Document     |
-| GET    | `/projects/{project_id}/documents/{document_id}`| Download Document   |
-| PATCH  | `/projects/{project_id}/documents/{document_id}`| Update Document     |
-| DELETE | `/projects/{project_id}/documents/{document_id}`| Delete Document     |
-
-### **Health**
-| Method | Endpoint | Description   |
-|--------|---------|---------------|
-| GET    | `/`     | Health Check  |
 
 ---
 
@@ -215,16 +219,18 @@ make test
 
 This project follows a layered (clean architecture) structure to keep the code modular, maintainable, and testable.
 
-| Layer / Folder         | Purpose |
-|-------------------------|---------|
-| **`app/main.py`**       | Entry point of the FastAPI application. |
-| **`app/core/`**         | Cross-cutting concerns and core infrastructure:<br>- `config.py`: App settings (env vars).<br>- `database.py`: DB connection/session.<br>- `logger.py`: Logging to `logs/app.log`.<br>- `security.py`: Security utilities (JWT, hashing).<br>- `exceptions.py`: Shared exceptions. |
-| **`app/domain/`**       | Business/domain logic (problem space):<br>- `entities/`: Domain models (`User`, `Project`, `Document`).<br>- `repositories/`: Abstract repository interfaces.<br>- `storage/`: Abstract storage interfaces + utils.<br>- `exceptions/`: Domain-specific errors. |
-| **`app/application/`**  | Application services — implements business use cases:<br>`auth_service.py`, `project_service.py`, `document_service.py`. |
-| **`app/infrastructure/`** | Technology-specific implementations:<br>- `orm/`: SQLAlchemy models.<br>- `sqlalchemy_*_repository.py`: Repository implementations.<br>- `storage/`: File system & S3 storage implementations. |
-| **`app/presentation/`** | Presentation/API layer:<br>- `api/v1/`: FastAPI routes (auth, projects, documents).<br>- `schemas/`: Pydantic request/response models.<br>- `dependencies.py`: Dependency injection. |
-| **`scripts/`**          | Utility scripts (e.g., `recreate_db.py` to reset DB). |
-| **`tests/`**            | Automated tests organized by feature/layer. |
+## 🏗 Project Architecture Overview
+
+| Layer / Folder            | Purpose |
+|----------------------------|---------|
+| **`app/main.py`**          | Entry point of the FastAPI application. |
+| **`app/domain/`**          | Business/domain logic (problem space):<br>- `entities/`: Core domain models (`User`, `Project`, `Document`, `UserProjectRole`).<br>- `repositories/`: Abstract repository interfaces.<br>- `storage/`: Abstract storage interfaces + utils.<br>- `exceptions/`: Domain-specific errors. |
+| **`app/services/`**        | Application services — orchestrates business logic (e.g., `auth_service`, `project_service`, `document_service`, `user_project_role_service`). |
+| **`app/infrastructure/`**  | Technology-specific implementations:<br>- `core/`: App config, DB, logger, security, shared exceptions.<br>- `orm/`: SQLAlchemy models.<br>- `sqlalchemy_*_repository.py`: Repository implementations.<br>- `storage/`: File system & S3 storage backends. |
+| **`app/routers/`**         | API presentation layer:<br>- `api/v1/`: FastAPI route definitions (auth, projects, documents).<br>- `schemas/`: Pydantic request/response models.<br>- `dependencies.py`: Dependency injection. |
+| **`aws/`**                 | Infrastructure as Code & Serverless:<br>- `cloudformation_ec2_rds.yml`: CloudFormation template for VPC, EC2, RDS PostgreSQL, S3, and Lambda setup.<br>- `lambda/`: Lambda function source, requirements, and deployment zip (image resizing). |
+| **`scripts/`**             | Utility scripts (e.g., `recreate_db.py` for database reset). |
+| **`tests/`**               | Automated tests organized by feature/layer (auth, infrastructure, project, root). |
 
 
 ## 📂 Project Structure
@@ -235,58 +241,69 @@ This project follows a layered (clean architecture) structure to keep the code m
 ├── Makefile
 ├── README.md
 ├── app
-│   ├── application
-│   │   └── services
-│   │       ├── auth_service.py
-│   │       ├── document_service.py
-│   │       └── project_service.py
-│   ├── core
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── exceptions.py
-│   │   ├── logger.py
-│   │   └── security.py
 │   ├── domain
 │   │   ├── enities
 │   │   │   ├── document.py
 │   │   │   ├── project.py
-│   │   │   └── user.py
+│   │   │   ├── user.py
+│   │   │   └── user_project_role.py
 │   │   ├── exceptions
 │   │   │   ├── document_exceptions.py
 │   │   │   ├── domain_exceptions.py
 │   │   │   ├── project_exceptions.py
-│   │   │   └── user_exceptions.py
+│   │   │   ├── user_exceptions.py
+│   │   │   └── user_project_role_exceptions.py
 │   │   ├── repositories
 │   │   │   ├── document_repository.py
 │   │   │   ├── project_repository.py
+│   │   │   ├── user_project_role_repository.py
 │   │   │   └── user_repository.py
 │   │   └── storage
 │   │       ├── document_storage.py
 │   │       ├── exceptions
 │   │       └── utils.py
 │   ├── infrastructure
+│   │   ├── core
+│   │   │   ├── config.py
+│   │   │   ├── database.py
+│   │   │   ├── exceptions.py
+│   │   │   ├── logger.py
+│   │   │   └── security.py
 │   │   ├── orm
 │   │   │   ├── document_model.py
 │   │   │   ├── project_model.py
-│   │   │   └── user_model.py
+│   │   │   ├── user_model.py
+│   │   │   └── user_project_role_model.py
 │   │   ├── sqlalchemy_documet_repository.py
 │   │   ├── sqlalchemy_project_repository.py
+│   │   ├── sqlalchemy_user_project_role_repository.py
 │   │   ├── sqlalchemy_user_repository.py
 │   │   └── storage
 │   │       ├── file_system_document_storage.py
 │   │       └── s3_document_storage.py
 │   ├── main.py
-│   └── presentation
-│       ├── api
-│       │   └── v1
-│       │       ├── auth_routes.py
-│       │       ├── document_routes.py
-│       │       └── project_routes.py
-│       ├── dependencies.py
-│       └── schemas
-│           ├── auth_schemas.py
-│           ├── document_schemas.py
-│           └── project_schemas.py
+│   ├── routers
+│   │   ├── api
+│   │   │   └── v1
+│   │   │       ├── auth_routes.py
+│   │   │       ├── document_routes.py
+│   │   │       └── project_routes.py
+│   │   ├── dependencies.py
+│   │   └── schemas
+│   │       ├── auth_schemas.py
+│   │       ├── document_schemas.py
+│   │       └── project_schemas.py
+│   └── services
+│       ├── auth_service.py
+│       ├── document_service.py
+│       ├── project_service.py
+│       └── user_project_role_service.py
+├── aws
+│   ├── cloudformation_ec2_rds.yml
+│   └── lambda
+│       ├── lambda_function.py
+│       ├── lambda_function.zip
+│       └── requirements.txt
 ├── docker-compose.yml
 ├── poetry.lock
 ├── pyproject.toml
@@ -297,7 +314,11 @@ This project follows a layered (clean architecture) structure to keep the code m
     │   └── test_auth_service.py
     ├── conftest.py
     ├── infrastructure
+    │   ├── test_file_system_document_storage.py
+    │   ├── test_s3_document_storage.py
     │   └── test_sqlalchemy_user_repository.py
+    ├── project
+    │   └── test_project_service.py
     └── test_root.py
 
 ```
@@ -310,22 +331,44 @@ This project includes a **GitHub Actions workflow** that runs on:
 - **Pushes and Pull Requests** to the `main` branch  
 - **Weekly scheduled runs** (every Monday at midnight)  
 
-The workflow consists of three jobs:
-
-1. **Code Quality**
-   - Linting with **Ruff**  
-   - Import sorting with **isort**  
-   - Formatting check with **Black**  
-   - (Optional) Static typing with **mypy**  
-   - (Optional) Security scan with **Bandit**
+1. **Code Quality Checks**
+   - Runs on every push and pull request to `main`.
+   - Steps:
+     - **Import sorting** with `isort`.
+     - **Linting** and auto-fixing issues using `Ruff`.
+     - **Code formatting check** with `Black`.
+     - **Security scan** using `Bandit`.
+     - (Optional, currently commented) Static typing with `mypy`.
 
 2. **Unit Tests**
-   - Runs **pytest** across multiple Python versions (`3.10`, `3.11`, `3.12`)  
-   - Ensures code works consistently in different environments
+   - Runs against multiple Python versions (`3.12`, `3.13`).
+   - Executes the full test suite with `pytest`.
+   - Ensures compatibility with the latest Python releases.
 
 3. **Dependency Check**
-   - Runs `poetry show --outdated`  
-   - Helps keep dependencies up to date
+   - Installs dev dependencies only.
+   - Runs `poetry show --outdated` to check for outdated packages weekly.
+
+4. **Build & Push to DockerHub**
+   - Runs only if all previous jobs succeed on the `main` branch.
+   - Steps:
+     - Logs in to DockerHub using repository secrets.
+     - Builds the Docker image with the application code.
+     - Pushes the image to DockerHub, tagged with the current commit SHA.
+
+5. **Deploy to AWS (via CloudFormation)**
+   - Runs after a successful DockerHub push.
+   - Steps:
+     - Configures AWS credentials via GitHub secrets.
+     - Validates the CloudFormation template (`aws/cloudformation_ec2_rds.yml`).
+     - Deploys the stack with parameters (DB credentials, token secret, Docker image, etc.).
+     - Creates/updates:
+       - **VPC and networking stack**
+       - **EC2 instance** running the Docker container
+       - **RDS PostgreSQL database**
+       - **S3 buckets** for document storage
+       - **Lambda function** (from a pre-uploaded zip in S3) that resizes images between buckets.
+     - Outputs the **public IP** of the deployed instance.
 
 📂 Workflow file: `.github/workflows/ci_workflow.yml`
 

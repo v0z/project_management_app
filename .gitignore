@@ -210,3 +210,4 @@ __marimo__/
 pytest.ini
 .DS_Store
 /documents/
+/aws_temp/
