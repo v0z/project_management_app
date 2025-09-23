@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
@@ -27,7 +28,6 @@ from app.routers.dependencies import (get_auth_service,
                                       get_user_repository)
 from app.services import (AuthService, DocumentService, ProjectService,
                           UserProjectRoleService)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
