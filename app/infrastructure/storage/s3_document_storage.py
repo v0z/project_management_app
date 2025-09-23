@@ -31,7 +31,7 @@ class S3DocumentStorage(DocumentStorage):
         self._ensure_bucket_exists()
 
     @property
-    def storage_backend(self) -> str:
+    def storage_backend(cls) -> str:
         return "s3"
 
     def create_bucket(self) -> None:
