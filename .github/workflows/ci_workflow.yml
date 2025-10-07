@@ -159,30 +159,30 @@ jobs:
             --template-body file://${GITHUB_WORKSPACE}/aws/cloudformation_ec2_rds.yml
           
 
-      - name: Deploy CloudFormation stack
-        timeout-minutes: 15
-        run: |
-          TEMPLATE_PATH="${GITHUB_WORKSPACE}/aws/cloudformation_ec2_rds.yml"
-           aws cloudformation deploy \
-            --template-file "$TEMPLATE_PATH" \
-            --stack-name fastapi-stack \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides \
-              DockerHubImage=${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud \
-              DockerImageTag=${{ github.sha }} \
-              ContainerPort=8000 \
-              DBUsername=${{ secrets.DBUSERNAME }} \
-              DBPassword=${{ secrets.DBPASSWORD }} \
-              DBName=${{ secrets.DBNAME }} \
-              TokenSecretKey=${{ secrets.TOKEN_SECRET_KEY }} \
-              StorageBackend="s3"
+      # - name: Deploy CloudFormation stack
+      #   timeout-minutes: 15
+      #   run: |
+      #     TEMPLATE_PATH="${GITHUB_WORKSPACE}/aws/cloudformation_ec2_rds.yml"
+      #      aws cloudformation deploy \
+      #       --template-file "$TEMPLATE_PATH" \
+      #       --stack-name fastapi-stack \
+      #       --capabilities CAPABILITY_NAMED_IAM \
+      #       --parameter-overrides \
+      #         DockerHubImage=${{ secrets.DOCKERHUB_USERNAME }}/fastapi_poetry_crud \
+      #         DockerImageTag=${{ github.sha }} \
+      #         ContainerPort=8000 \
+      #         DBUsername=${{ secrets.DBUSERNAME }} \
+      #         DBPassword=${{ secrets.DBPASSWORD }} \
+      #         DBName=${{ secrets.DBNAME }} \
+      #         TokenSecretKey=${{ secrets.TOKEN_SECRET_KEY }} \
+      #         StorageBackend="s3"
 
-      - name: Get Stack Outputs
-        id: get_output
-        run: |
-           PUBLIC_IP=$(aws cloudformation describe-stacks \
-             --stack-name fastapi-stack \
-             --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
-             --output text)
-           echo "instance-ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-           echo "Public IP: $PUBLIC_IP"
+      # - name: Get Stack Outputs
+      #   id: get_output
+      #   run: |
+      #      PUBLIC_IP=$(aws cloudformation describe-stacks \
+      #        --stack-name fastapi-stack \
+      #        --query "Stacks[0].Outputs[?OutputKey=='InstancePublicIP'].OutputValue" \
+      #        --output text)
+      #      echo "instance-ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+      #      echo "Public IP: $PUBLIC_IP"
