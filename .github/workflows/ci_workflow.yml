@@ -5,8 +5,8 @@ on:
     branches: ["main"]  # Trigger on push to main
   pull_request:
     branches: ["main"]  # Trigger on PRs targeting main
-  schedule:
-    - cron: '0 0 * * 1'  # Weekly scheduled run every Monday at midnight
+  # schedule:
+    # - cron: '0 0 * * 1'  # Weekly scheduled run every Monday at midnight
 
 permissions:
   contents: read
